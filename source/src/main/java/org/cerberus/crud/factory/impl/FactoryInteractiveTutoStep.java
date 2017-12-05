@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 public class FactoryInteractiveTutoStep implements IFactoryInteractiveTutoStep {
 
     @Override
-    public InteractiveTutoStep create(int id, String selector, String description, InteractiveTutoStepType type) {
-        return new InteractiveTutoStep(id,selector,description,type);
+    public InteractiveTutoStep create(int id, String selector, String description, InteractiveTutoStepType type, String attr1) {
+        return new InteractiveTutoStep(id,selector,description,type, attr1);
     }
 }

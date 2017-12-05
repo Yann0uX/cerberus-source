@@ -9590,7 +9590,11 @@ public class DatabaseVersioningService implements IDatabaseVersioningService {
         SQLS = new StringBuilder();
         SQLS.append("CREATE TABLE `interactive_tuto` ( ");
         SQLS.append("id int primary key,");
-        SQLS.append("libelle varchar(64) not null");
+        SQLS.append("title varchar(61) not null,");
+        SQLS.append("description varchar(255) not null,");
+        SQLS.append("role varchar(31) not null,");
+        SQLS.append("ord int not null,");
+        SQLS.append("level int not null"); // 1 easy, 2 intermediate, 3 hard
         SQLS.append(")");
         SQLInstruction.add(SQLS.toString());
 
@@ -9601,68 +9605,77 @@ public class DatabaseVersioningService implements IDatabaseVersioningService {
         SQLS.append("selector varchar(255),");
         SQLS.append("step_order int,");
         SQLS.append("description text not null,");
-        SQLS.append("type varchar(32) not null,");
+        SQLS.append("type varchar(31) not null,");
+        SQLS.append("attr1 varchar(125),");
         SQLS.append("FOREIGN KEY (id_interactive_tuto) REFERENCES interactive_tuto(id),");
         SQLS.append("primary key (id)");
         SQLS.append(")");
         SQLInstruction.add(SQLS.toString());
 
         SQLS = new StringBuilder();
-        SQLS.append("INSERT INTO `interactive_tuto` (`id`, `libelle`) VALUES ");
-        SQLS.append("  (1, 'first_step_admin')");
+        SQLS.append("INSERT INTO `interactive_tuto` (`id`, `title`, `description`, `role`, `ord`, `level`) VALUES \n");
+        SQLS.append("  (1, 'First step for an Admin', 'Learn the first step to initialize cerberus and create your first test system', 'Administrator', 0, 1),\n");
+        SQLS.append("  (2, 'First step for a Test Implementer', 'Learn how implement your first test','Test', 100, 1),\n");
+        SQLS.append("  (3, 'Web implementation', 'Web implementation for beginner. Describe more about it','Test', 100, 1),\n");
+        SQLS.append("  (4, 'Web implementation', 'Web implementation for intermediate user. Describe more about it','Test', 102, 2),\n");
+        SQLS.append("  (5, 'Web implementation', 'Web implementation for expert. Describe more about it','Test', 104,3)");
+
         SQLInstruction.add(SQLS.toString());
 
         // ADD Interactive tutorial for admin
         // general page
         SQLS = new StringBuilder();
-        SQLS.append("INSERT INTO `interactive_tuto_step` (`id_interactive_tuto`, `step_order`, `selector`,  `type`, `description`) VALUES \n");
-        SQLS.append("  (1, 5,   null,                       'general',              'Bienvenue dans Cerberus ! Je vois que c''est ta première connexion, veux tu que je te guide dans tes premiers pas ?'),\n");
-        SQLS.append("  (1, 10,  null,                       'general',              'Bienvenue sur la page d''accueil de cerberus ! <b>Sur cette page d’accueil, tu trouveras des informations sur</b>\n");
-        SQLS.append(                                                                "<ul>\n");
-        SQLS.append(                                                                    "<li>les cas de tests par application regroupés par status</li>\n");
-        SQLS.append(                                                                    "<li>les dernières executions par tag</li>\n");
-        SQLS.append(                                                                    "<li>les versions des applications déployées par environnement</li>\n");
-        SQLS.append(                                                                "</ul>'),\n");
-        SQLS.append("  (1, 15,   null,                      'general',              'Bienvenue dans Cerberus ! Je vois que c''est ta première connexion, veux tu que je te guide dans tes premiers pas ?'),\n");
-        SQLS.append("  (1, 20,   null,                      'general',              'TODO, 2 choix = rediriger sur tuto admin ou tuto création dun cas de test. Pour le moment juste l''admin est créé'),\n");
-        SQLS.append("  (1, 30,  '#sidebar',                 'changePageAfterClick', 'Vous êtes administrateur ! La 1ere étape de configuration est de créer un système.\n");
-        SQLS.append(                                                                "Un <strong>système</strong> est une application métier ou CI. Rendez vous dans le menu <b>Administration/Invariants.</b>'),\n");
+        SQLS.append("INSERT INTO `interactive_tuto_step` (`id_interactive_tuto`, `step_order`, `selector`,  `type`, `attr1`, `description`) VALUES \n");
+        SQLS.append("  (1, 30,  '#sidebar',                 'changePageAfterClick', '#menuInvariants',   'Vous êtes administrateur ! La 1ere étape de configuration est de créer un système.\n");
+        SQLS.append(                                                                                     "Un <strong>système</strong> est une application métier ou CI. Rendez vous dans le menu <b>Administration/Invariants.</b>'),\n");
 
 
-        // Page invariant
-        SQLS.append("  (1, 35, '#idname',                   'default',              'Clique sur Creer un invariant'),\n");
-        SQLS.append("  (1, 40, '#value',                    'default',              'Selectionne SYSTEM dans la liste'),\n");
-        SQLS.append("  (1, 45, '#createInvariantButton',    'default',              'Donne un nom à ton systeme'),\n");
-        SQLS.append("  (1, 50, '#addInvariantButton',       'default',              'Et valide ton nouveau systeme'),\n");
-        SQLS.append("  (1, 55, '#menuEnvironments',         'changePageAfterClick', 'Voilà, ton sytème est créé ! Prochaine étape : il faut créez un environnement. L''<b>environement</b>\n");
-        SQLS.append(                                                                " represente une plateforme de test, ex : INTEGRATION ou PREPRODUCTION.  Rendez-vous dans le menu <b>Integration/Environment</b>'),\n");
+        // Page invariant, null,
+        SQLS.append("  (1, 35, '#createInvariantButton',    'default',              null,                'Clique sur Creer un invariant'),\n");
+        SQLS.append("  (1, 40, '#idname',                   'default',              null,                'Selectionne SYSTEM dans la liste'),\n");
+        SQLS.append("  (1, 45, '#value',                    'default',              null,                'Donne un nom à ton systeme'),\n");
+        SQLS.append("  (1, 50, '#addInvariantButton',       'default',              null,                'Et valide ton nouveau systeme'),\n");
+        SQLS.append("  (1, 55, '#sidebar',                  'changePageAfterClick', '#menuEnvironments', 'Voilà, ton sytème est créé ! Prochaine étape : il faut créez un environnement. L''<b>environement</b>\n");
+        SQLS.append(                                                                                     " represente une plateforme de test, ex : INTEGRATION ou PREPRODUCTION.  Rendez-vous dans le menu <b>Integration/Environment</b>'),\n");
 
-        // page environement
-        SQLS.append("  (1, 60, '#createEnvButton',          'default',              'Clique sur <b>Creer un environement</b>'),\n");
-        SQLS.append("  (1, 65, '#system',                   'default',              'Selectionne le système que tu viens de creer'),\n");
-        SQLS.append("  (1, 70, '#country',                  'default',              'Selectionne le pays - TODO recuperer l''aide du pays'),\n");
-        SQLS.append("  (1, 75, '#environment',              'default',              'Selectionne l''environnement sur lequel tu veux faire tourner le système'),\n");
-        SQLS.append("  (1, 80, '#description',              'default',              'Ajoute une description de l''environnement'),\n");
-        SQLS.append("  (1, 85, '#addEnvButton',             'default',              'Et valide l''environement'),\n");
-        SQLS.append("  (1, 90, '#sidebar',                  'changePageAfterClick',              'Prochaine étape : vérifier qu''un type de déploiement existe. Rendez vous dans <b>Application/Type de deploiement</b>'),\n");
+        // page environement, null,
+        SQLS.append("  (1, 60, '#createEnvButton',          'default',              null,                'Clique sur <b>Creer un environement</b>'),\n");
+        SQLS.append("  (1, 65, '#system',                   'default',              null,                'Selectionne le système que tu viens de creer'),\n");
+        SQLS.append("  (1, 70, '#country',                  'default',              null,                'Selectionne le pays - TODO recuperer l''aide du pays'),\n");
+        SQLS.append("  (1, 75, '#environment',              'default',              null,                'Selectionne l''environnement sur lequel tu veux faire tourner le système'),\n");
+        SQLS.append("  (1, 80, '#description',              'default',              null,                'Ajoute une description de l''environnement'),\n");
+        SQLS.append("  (1, 85, '#addEnvButton',             'default',              null,                'Et valide l''environement'),\n");
+        SQLS.append("  (1, 90, '#sidebar',                  'changePageAfterClick', '#menuDeployType',   'Prochaine étape : vérifier qu''un type de déploiement existe. Rendez vous dans <b>Application/Type de deploiement</b>'),\n");
 
-        // type de deploiement
-        SQLS.append("  (1, 95, '#createDeployTypeButton',   'default',              'Creer un nouveau type de deploiement'),\n");
-        SQLS.append("  (1, 100,'#deployType',               'default',              'Renseigne le nom du type de deploiement'),\n");
-        SQLS.append("  (1, 105,'#Description',              'default',              'Decrit le type de deploiement'),\n");
-        SQLS.append("  (1, 110,'#addEntryButton',           'default',              'Et sauvegarde le type de deploiement'),\n");
-        SQLS.append("  (1, 115,'#sidebar',                  'changePageAfterClick', 'Dernière étape : créer une application. Rendez vous dans <b>Application/Application</b>'),\n");
-        // page application
-        SQLS.append("  (1, 120,'#createApplicationButton',  'default',              'Clique sur <b>Creer une application</b>'),\n");
-        SQLS.append("  (1, 125,'#application',              'default',              'Entre le nom de l''application que tu veux tester'),\n");
-        SQLS.append("  (1, 130,'#description',              'default',              'Entre une description'),\n");
-        SQLS.append("  (1, 135,'#type',                     'default',              'Entre le type d''application (web, mobile, client riche etc...)'),\n");
-        SQLS.append("  (1, 140,'#system',                   'default',              'Selectionne le système'),\n");
-        SQLS.append("  (1, 145,'#deploytype',               'default',              'Selectionne le type de deploiement prevu pour l''application'),\n");
-        SQLS.append("  (1, 150,'#addApplicationButton',     'changePageAfterClick', 'Et valide l''application !'),\n");
-        SQLS.append("  (1, 155, null,                       'general',              'Bravo! Tu es prêt à creer tes premiers cas de test sur l''application que tu viens de créer. >>> Passer au tuto suivant')\n");
+        // type de deploiement, null,
+        SQLS.append("  (1, 95, '#createDeployTypeButton',   'default',              null,                'Creer un nouveau type de deploiement'),\n");
+        SQLS.append("  (1, 100,'#deployType',               'default',              null,                'Renseigne le nom du type de deploiement'),\n");
+        SQLS.append("  (1, 105,'#Description',              'default',              null,                'Decrit le type de deploiement'),\n");
+        SQLS.append("  (1, 110,'#addEntryButton',           'default',              null,                'Et sauvegarde le type de deploiement'),\n");
+        SQLS.append("  (1, 115,'#sidebar',                  'changePageAfterClick', 'a#menuApplications',                'Dernière étape : créer une application. Rendez vous dans <b>Application/Application</b>'),\n");
+        // page application, null,
+        SQLS.append("  (1, 120,'#createApplicationButton',  'default',              null,                'Clique sur <b>Creer une application</b>'),\n");
+        SQLS.append("  (1, 125,'#application',              'default',              null,                'Entre le nom de l''application que tu veux tester'),\n");
+        SQLS.append("  (1, 130,'#description',              'default',              null,                'Entre une description'),\n");
+        SQLS.append("  (1, 135,'#type',                     'default',              null,                'Entre le type d''application (web, mobile, client riche etc...)'),\n");
+        SQLS.append("  (1, 140,'#system',                   'default',              null,                'Selectionne le système'),\n");
+        SQLS.append("  (1, 145,'#deploytype',               'default',              null,                'Selectionne le type de deploiement prevu pour l''application'),\n");
+        SQLS.append("  (1, 150,'#addApplicationButton',     'default',              null,                'Et valide l''application !'),\n");
+        SQLS.append("  (1, 155, null,                       'general',              null,                'Bravo! Tu es prêt à creer tes premiers cas de test sur l''application que tu viens de créer. >>> Passer au tuto suivant')\n");
 
         SQLInstruction.add(SQLS.toString());
+
+
+        // A test who cret
+        SQLS.append("INSERT INTO `interactive_tuto_step` (`id_interactive_tuto`, `step_order`, `selector`,  `type`, `attr1`, `description`) VALUES \n");
+        SQLS.append("  (1, 0,   null,                       'genral',               null,                   'Nous allons apprendre à faire ouvrir une url, naviguer sur un site, et tester si des du texte ou des éléments sont présent sur la page.'),");
+        SQLS.append("  (1, 5,'#sidebar',                    'changePageAfterClick', '#menuEditTest',        'Première étape : créer un nouveau test. Rendez-vous dans <b>Test/Test</b>'),\n");
+
+        // Page test
+        SQLS.append("  (1, 10,'#createTestButton',          'default',              null,                   'Le <b>Test</b> est un ensemble de cas de tests regroupés découpés par fonction d’application. Ici, nous allons commencer créer un premier <b>Test</b> pour test la page du site vitrine Cerberus'),\n");
+        SQLS.append("  (1, 15,'#test',                      'default',              null,                   'Nommons donc notre test <b>Site Vitrine Cerberus Testing IHM</b>'),\n");
+        SQLS.append("  (1, 25,'#addEntryButton',            'default',              null,                   'Et sauvegardons!'),\n");
+        SQLS.append("  (1, 5,'.dataTables_scroll',          'changePageAfterClick', '#testCaseLink',        'On peut maintenant creer des <b>cas de test</b>! Cliquer directement sur img pour acceder au <b>cas de test</b> de votre nouveau <b>test</b>'),\n");
 
 
         return SQLInstruction;

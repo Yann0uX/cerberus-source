@@ -35,8 +35,10 @@ import java.sql.ResultSet;
 public class InteractiveTutoControllerTest {
 
     private static final int ID_INTERACTIVE_TUTO_1 = 1;
-    private static final String LIBELLE_INTERACTIVE_TUTO_1 = "libelle1";
-    private static final InteractiveTuto INTERACTIVE_TUTO_1 = new InteractiveTuto(ID_INTERACTIVE_TUTO_1, LIBELLE_INTERACTIVE_TUTO_1, null);
+    private static final String TITLE_INTERACTIVE_TUTO_1 = "libelle1";
+    private static final String DESCR_INTERACTIVE_TUTO_1 = "description1";
+    private static final String ROLE_INTERACTIVE_TUTO_1 = "Administrator";
+    private static final InteractiveTuto INTERACTIVE_TUTO_1 = new InteractiveTuto(ID_INTERACTIVE_TUTO_1, TITLE_INTERACTIVE_TUTO_1, DESCR_INTERACTIVE_TUTO_1, ROLE_INTERACTIVE_TUTO_1, 1, InteractiveTuto.Level.EASY ,null);
 
     private static final int ID_INTERACTIVE_TUTO_STEP_1 = 1;
     private static final int ID_INTERACTIVE_TUTO_STEP_2 = 2;
@@ -96,13 +98,17 @@ public class InteractiveTutoControllerTest {
                 thenReturn(ID_INTERACTIVE_TUTO_1).
                 thenReturn(ID_INTERACTIVE_TUTO_STEP_1).
                 thenReturn(ID_INTERACTIVE_TUTO_STEP_2);
-        when(resultSet.getString("libelle")).thenReturn(LIBELLE_INTERACTIVE_TUTO_1);
+
+        when(resultSet.getString("title")).thenReturn(TITLE_INTERACTIVE_TUTO_1);
+
+        when(resultSet.getString("role")).thenReturn(ROLE_INTERACTIVE_TUTO_1);
 
         when(resultSet.getString("selector")).
                 thenReturn(SELECTOR_INTERACTIVE_TUTO_STEP_1).
                 thenReturn(SELECTOR_INTERACTIVE_TUTO_STEP_2);
 
         when(resultSet.getString("description")).
+                thenReturn(DESCR_INTERACTIVE_TUTO_1).
                 thenReturn(DESCR_INTERACTIVE_TUTO_STEP_1).
                 thenReturn(DESCR_INTERACTIVE_TUTO_STEP_2);
 
@@ -114,7 +120,9 @@ public class InteractiveTutoControllerTest {
 
         Assert.assertNotNull(res);
         Assert.assertEquals(res.getId(), ID_INTERACTIVE_TUTO_1);
-        Assert.assertEquals(res.getLibelle(), LIBELLE_INTERACTIVE_TUTO_1);
+        Assert.assertEquals(res.getTitle(), TITLE_INTERACTIVE_TUTO_1);
+        Assert.assertEquals(res.getDescription(), DESCR_INTERACTIVE_TUTO_1);
+        Assert.assertEquals(res.getRole(), ROLE_INTERACTIVE_TUTO_1);
 
         Assert.assertNotNull(res.getSteps());
         Assert.assertEquals(res.getSteps().size(),2);
@@ -129,7 +137,6 @@ public class InteractiveTutoControllerTest {
 
         verify(resultSet, atLeast(2)).close();
         verify(connection, atLeast(2)).close();
-        verify(databaseSpring, atLeast(2)).closeConnection();
     }
 
     @Test
@@ -141,6 +148,5 @@ public class InteractiveTutoControllerTest {
 
         verify(resultSet).close();
         verify(connection).close();
-        verify(databaseSpring).closeConnection();
     }
 }

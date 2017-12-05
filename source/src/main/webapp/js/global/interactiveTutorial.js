@@ -19,20 +19,102 @@
  */
 
 $(document).ready(function () {
+    $("#openInteractiveTutoModal").off("click");
+    $("#openInteractiveTutoModal").click(function () {
+        // remove all into the modal
+        $("#interactiveTutoList").html("");
+
+        $.get('api/interactiveTuto/list',
+            function (data, status) {
+                if(status==='success') {
+                    data.forEach(function (data) {
+                        createNewButtonOnTutoShowroom(data.id, data.title, data.description, data.role, data.level);
+                    });
+                } else {
+                    console.error('api/interactiveTuto/list respond with error' + status);
+                }
+            })
+
+
+        $('#interactiveTutoModal').modal();
+    });
 
     if(getUrlParameter("tutorielId") !== undefined) {
         let tutorielId = getUrlParameter("tutorielId");
         console.log(tutorielId);
         let startStep = getUrlParameter("startStep");
-        interractiveTutorial(startStep);
+        interractiveTutorial(tutorielId, startStep);
     }
 
 });
 
-function interractiveTutorial(startStep=1) {console.log("coucou");
-    let cerberusTuto = new CerberusTuto("firstStepAdmin");
+function createNewButtonOnTutoShowroom(id, title, description, role, level) {
 
-    // Page d'accueil
+    if($('#'+role).length === 0) { // verify if element exit
+        $("#interactiveTutoList").append("<div id="+role+"><h3>"+role+"</h3></div>");
+    }
+
+    let levelstr = "easy";
+    let badgecolor="success";
+    if(level==2)  { levelstr = "medium"; badgecolor="warning";}
+    if(level==3)  { levelstr = "hard"; badgecolor="danger";}
+
+    // populate the modal
+    $('#'+role).append(
+        "<div class='row' style='margin-top:5px;'>" +
+        "   <div class='col-xs-5'>" +
+        "       <button id='tuto"+id+"' type=\"button\" class=\"btn btn-default col-xs-12\" data-dismiss=\"modal\" " + "name=\"buttonClose\">"+title+"</button>" +
+        "   </div>" +
+        "   <div class='col-xs-1 label label-"+badgecolor+"' style='margin-top: 8px;font-size:100%'>"+levelstr+"</div>" +
+        "   <div class=\"col-xs-6\">" +
+        "       <span class='col-xs-12' style='margin-top: 8px;padding:0pxs'>"+description+"" + "</span>" +
+        "   </div>" +
+        "</div>");
+
+    $('#tuto'+id).click(function() {
+        interractiveTutorial(id);
+    })
+
+}
+
+function interractiveTutorial(id, startStep=1) {console.log("coucou");
+
+    $.get('api/interactiveTuto/get', {
+        id : id
+    }, function (data, status) {
+        if(status!='success') {
+            console.error('api/interactiveTuto/get respond with error' + status);
+            return;
+        }
+        let cerberusTuto = new CerberusTuto(data.id);
+
+        if(data.steps == null || data.steps.length <= 0) {
+            cerberusTuto.addGeneralMessage("Tutoriel is being written  ...");
+        } else {
+            data.steps.forEach(function (step) {
+                switch (step.type) {
+                    case 'GENERAL' :
+                        cerberusTuto.addGeneralMessage(step.text);
+                        break;
+                    case 'CHANGE_PAGE_AFTER_CLICK' :
+                        cerberusTuto.addMessageAndChangePageAfterClick(step.selectorJquery, step.text, step.attr1);
+                        break;
+                    default :
+                        cerberusTuto.addMessage(step.selectorJquery, step.text);
+                        break;
+                }
+            });
+        }
+
+        cerberusTuto.start(startStep);
+    });
+}
+
+
+function firstConnexion() {
+    let cerberusTuto = new CerberusTuto(0);
+
+
     cerberusTuto.addGeneralMessage("Bienvenue dans Cerberus ! Je vois que c'est ta première connexion, veux tu que je te guide dans tes premiers pas ?");
     cerberusTuto.addGeneralMessage("Bienvenue sur la page d'accueil de cerberus ! <b>Sur cette page d’accueil, tu trouveras des informations sur</b>" +
         "<ul>" +
@@ -55,36 +137,8 @@ function interractiveTutorial(startStep=1) {console.log("coucou");
         " represente une plateforme de test, ex : INTEGRATION ou PREPRODUCTION." +
         " Rendez-vous dans le menu <b>Integration/Environment</b>", "#menuEnvironments");
 
-    // page environement
-    cerberusTuto.addMessage("#createEnvButton", "Clique sur <b>Creer un environement</b>");
-    cerberusTuto.addMessage("#system", "Selectionne le système que tu viens de creer");
-    cerberusTuto.addMessage("#country", "Selectionne le pays - TODO recuperer l'aide du pays");
-    cerberusTuto.addMessage("#environment", "Selectionne l'environnement sur lequel tu veux faire tourner le système");
-    cerberusTuto.addMessage("#description", "Ajoute une description de l'environnement");
-    cerberusTuto.addMessage("#addEnvButton", "Et valide l'environement");
-    cerberusTuto.addMessageAndChangePageAfterClick("#sidebar", "Prochaine étape : vérifier qu'un type de déploiement existe. Rendez vous dans <b>Application/Type de deploiement</b>", "#menuDeployType");
-
-    // type de deploiement
-    cerberusTuto.addMessage("#createDeployTypeButton", "Creer un nouveau type de deploiement");
-    cerberusTuto.addMessage("#deployType", "Renseigne le nom du type de deploiement");
-    cerberusTuto.addMessage("#Description", "Decrit le type de deploiement");
-    cerberusTuto.addMessage("#addEntryButton", "Et sauvegarde le type de deploiment");
-    cerberusTuto.addMessageAndChangePageAfterClick("#sidebar", "Dernière étape : créer une application. Rendez vous dans <b>Application/Application</b>", "a#menuApplications");
-
-
-    // page application
-    cerberusTuto.addMessage("#createApplicationButton", "Clique sur <b>Creer une application</b>");
-    cerberusTuto.addMessage("#application", "Entre le nom de l'application que tu veux tester");
-    cerberusTuto.addMessage("#description", "Entre une description");
-    cerberusTuto.addMessage("#type", "Entre le type d'application (web, mobile, client riche etc...)");
-    cerberusTuto.addMessage("#system", "Selectionne le système");
-    cerberusTuto.addMessage("#deploytype", "Selectionne le type de deploiement prevu pour l'application");
-    cerberusTuto.addMessage("#addApplicationButton", "Et valide l'application !");
-
-    cerberusTuto.addGeneralMessage("Bravo! Tu es prêt à creer tes premiers cas de test sur l'application que tu viens de créer. >>> Passer au tuto suivant");
-
-
     cerberusTuto.start(startStep);
+
 }
 
 class CerberusTuto {
@@ -98,9 +152,11 @@ class CerberusTuto {
     addGeneralMessage(messageStr) {
         let message = {
             intro : messageStr,
-            step : this.cpt
+            step : this.cpt,
+            type : 'general'
         };
         this.listMessage.push(message);
+
         this.cpt++;
     }
 
@@ -109,6 +165,7 @@ class CerberusTuto {
             element : jqueryId,
             intro : messageStr,
             step : this.cpt,
+            type : 'default'
         };
 
 
@@ -118,13 +175,8 @@ class CerberusTuto {
 
     addMessageAndChangePageAfterClick(jqueryId, messageStr, idLink) {
         this.addMessage(jqueryId, messageStr);
-
-        if($(idLink) === undefined && $(idLink).attr("href") === undefined) {
-            console.log("Element " + idLink + " is undefined or is not a link");
-        } else {
-            let symboleAdd = $(idLink).attr("href").includes("?") ? "&" : "?";
-            $(idLink).attr("href", $(idLink).attr("href") + symboleAdd + "tutorielId=" + this.tutorialId + "&startStep="+this.cpt);
-        }
+        this.listMessage[this.listMessage.length-1].type='changeAfterClick';
+        this.listMessage[this.listMessage.length-1].idLink=idLink;
     }
 
     start(startStep=1) {
@@ -134,7 +186,38 @@ class CerberusTuto {
         this.listMessageToUse = this.listMessage.slice(startStep-1);
         this.intro.setOptions({steps:this.listMessageToUse});
 
-        this.intro.onchange(this.goToNextStepAfterClick);
+        let _this=this;
+        this.intro.onchange(function (targetElement) {
+            let intro = this;
+
+            var clickOnNextStep = function (targetElement) {
+                if (intro != undefined) {
+                    waitForElementToDisplay(intro._options.steps[intro._currentStep + 1].element, 100, function () {
+                        intro.nextStep();
+                    });
+                }
+            }
+
+            if ($(targetElement).is("button")) { // if current element is a button
+                $(targetElement).click(clickOnNextStep);
+            } else { // else, for each button into the element
+                $(targetElement).find("button").each(function (index, value) {
+                    $(value).click(clickOnNextStep);
+                });
+            }
+
+            // add the step and tutorial number on link to follow the tutorial throw web pages
+            let message = _this.listMessage[intro._currentStep+parseInt(startStep)-1];
+            // if we want change page after the click, we have to added
+            if(message.type==='changeAfterClick') {
+                if ($(message.idLink) === undefined || $(message.idLink).attr("href") === undefined) {
+                    console.log("Element " + message.idLink + " is undefined or is not a link");
+                } else {
+                    let symboleAdd = $(message.idLink).attr("href").includes("?") ? "&" : "?";
+                    $(message.idLink).attr("href", $(message.idLink).attr("href") + symboleAdd + "tutorielId=" + _this.tutorialId + "&startStep=" + (message.step+1));
+                }
+            }
+        });
 
         this.intro.onafterchange(function(targetElement) {
             var intro=this;
@@ -142,16 +225,18 @@ class CerberusTuto {
             // Bug introjs with modal bootstrat, we move introjs directly into the modal to cerrect it (bug with fix position)
             // by default introjs element on body
             $('.introjs-overlay, .introjs-helperLayer, .introjs-tooltipReferenceLayer').appendTo("body");
-            waitForElementToDisplay(intro._options.steps[intro._currentStep + 1].element, 100, function () {
-                if($("div.modal.introjs-fixParent").length==1) {
-                    $('.introjs-overlay, .introjs-helperLayer, .introjs-tooltipReferenceLayer').appendTo("div.modal.introjs-fixParent");
-                    $('.introjs-overlay').css("position","absolute");
-                    $('.introjs-overlay').css("height", $(document).height() + "px");
-                }
-                $('.introjs-helperLayer, .introjs-tooltipReferenceLayer').removeClass("introjs-fixedTooltip");
-            });
+            if(intro._options.steps[intro._currentStep + 1] !== undefined && intro._options.steps[intro._currentStep + 1].element !== undefined) {
+                waitForElementToDisplay(intro._options.steps[intro._currentStep + 1].element, 100, function () {
+                    if ($("div.modal.introjs-fixParent").length == 1) {
+                        $('.introjs-overlay, .introjs-helperLayer, .introjs-tooltipReferenceLayer').appendTo("div.modal.introjs-fixParent");
+                        $('.introjs-overlay').css("position", "absolute");
+                        $('.introjs-overlay').css("height", $(document).height() + "px");
+                    }
+                    $('.introjs-helperLayer, .introjs-tooltipReferenceLayer').removeClass("introjs-fixedTooltip");
+                });
+             }
         });
-        var _this = this;
+
         // wait for the first element
         if(this.listMessage[startStep-1] != undefined && this.listMessage[startStep-1].element != undefined) {
             waitForElementToDisplay(this.listMessage[startStep - 1].element, 100, function() {
@@ -162,26 +247,6 @@ class CerberusTuto {
         }
     }
 
-
-    goToNextStepAfterClick(targetElement) {
-        let intro = this;
-
-        var clickOnNextStep = function () {
-            if (intro != undefined) {
-                waitForElementToDisplay(intro._options.steps[intro._currentStep + 1].element, 100, function () {
-                    intro.nextStep();
-                });
-            }
-        }
-
-        if ($(targetElement).is("button")) { // if current element is a button
-            $(targetElement).click(clickOnNextStep);
-        } else { // else, for each button into the element
-            $(targetElement).find("button").each(function (index, value) {
-                $(value).click(clickOnNextStep);
-            });
-        }
-    }
 }
 
 

@@ -36,7 +36,7 @@ public class InteractiveTutoDAO implements IInterractiveTutoDAO {
     @Override
     public InteractiveTuto getInteractiveTutorial(int id, boolean withStep) {
 
-        final String query = "SELECT id, libelle FROM interactive_tuto it WHERE it.id = ?";
+        final String query = "SELECT id, title, description, role, ord, level FROM interactive_tuto it WHERE it.id = ?";
 
         InteractiveTuto tuto = null;
         try (
@@ -59,7 +59,7 @@ public class InteractiveTutoDAO implements IInterractiveTutoDAO {
     }
 
     public List<InteractiveTutoStep> getListStep(int idInteractiveTuto) {
-        final String query = "SELECT id, selector, description, type FROM interactive_tuto_step its WHERE its.id_interactive_tuto = ? order by step_order";
+        final String query = "SELECT id, selector, description, type, attr1 FROM interactive_tuto_step its WHERE its.id_interactive_tuto = ? order by step_order";
 
         List<InteractiveTutoStep> tuto = new LinkedList<>();
 
@@ -74,8 +74,9 @@ public class InteractiveTutoDAO implements IInterractiveTutoDAO {
                     String selector = resultSet.getString("selector");
                     String description = resultSet.getString("description");
                     String type = resultSet.getString("type");
+                    String attr1 = resultSet.getString("attr1");
 
-                    tuto.add(factoryITStep.create(idStep, selector, description, InteractiveTutoStepType.getEnum(type)));
+                    tuto.add(factoryITStep.create(idStep, selector, description, InteractiveTutoStepType.getEnum(type),attr1));
                 }
             }
         } catch (SQLException exception) {
@@ -90,7 +91,7 @@ public class InteractiveTutoDAO implements IInterractiveTutoDAO {
 
     @Override
     public List<InteractiveTuto> getListInteractiveTutorial(boolean withStep) {
-        final String query = "SELECT id, libelle FROM interactive_tuto it";
+        final String query = "SELECT id, title, description, role, ord, level FROM interactive_tuto it";
 
         List<InteractiveTuto> res = new LinkedList<>();
 
@@ -114,11 +115,15 @@ public class InteractiveTutoDAO implements IInterractiveTutoDAO {
 
     private InteractiveTuto getInteractiveTutoFromResultset(ResultSet rs, boolean withStep) throws SQLException {
         int idTuto = rs.getInt("id");
-        String libelle = rs.getString("libelle");
-        InteractiveTuto tuto = factoryIT.create(idTuto, libelle);
+        String title = rs.getString("title");
+        String description = rs.getString("description");
+        String role = rs.getString("role");
+        int order = rs.getInt("ord");
+        int level = rs.getInt("level");
+        InteractiveTuto tuto = factoryIT.create(idTuto, title, description, role, order, level);
 
         if (withStep)
-            tuto.setStep(getListStep(idTuto));
+            tuto.setSteps(getListStep(idTuto));
 
         return tuto;
     }

@@ -5,12 +5,14 @@ import org.cerberus.crud.entity.InteractiveTutoStepType;
 public class InteractiveTutoStepDTO {
     private String selectorJquery;
     private String text;
+    private String attr1;
     private InteractiveTutoStepType type;
 
-    public InteractiveTutoStepDTO(int id, String selectorJquery, String text, InteractiveTutoStepType type) {
+    public InteractiveTutoStepDTO(int id, String selectorJquery, String text, InteractiveTutoStepType type, String attr1) {
         this.selectorJquery = selectorJquery;
         this.text = text;
         this.type = type;
+        this.attr1=attr1;
     }
 
     public String getSelectorJquery() {
@@ -35,5 +37,13 @@ public class InteractiveTutoStepDTO {
 
     public void setType(InteractiveTutoStepType type) {
         this.type = type;
+    }
+
+    public String getAttr1() {
+        return attr1;
+    }
+
+    public void setAttr1(String attr1) {
+        this.attr1 = attr1;
     }
 }

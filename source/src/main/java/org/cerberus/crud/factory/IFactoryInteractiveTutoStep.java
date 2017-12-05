@@ -24,5 +24,5 @@ import org.cerberus.crud.entity.InteractiveTutoStepType;
 
 public interface IFactoryInteractiveTutoStep {
 
-    InteractiveTutoStep create(int id, String selectorJquery, String text, InteractiveTutoStepType type);
+    InteractiveTutoStep create(int id, String selectorJquery, String text, InteractiveTutoStepType type, String attr1);
 }

@@ -8,8 +8,9 @@ import javax.annotation.Resource;
 
 @Service
 public class FactoryInteractiveTuto implements IFactoryInteractiveTuto {
+
     @Override
-    public InteractiveTuto create(int id, String libelle) {
-        return new InteractiveTuto(id,libelle, null);
+    public InteractiveTuto create(int id, String title, String description, String role, int order, int level) {
+        return new InteractiveTuto(id,title, description, role, order, InteractiveTuto.Level.getEnum(level), null);
     }
 }

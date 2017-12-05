@@ -23,5 +23,5 @@ import org.cerberus.crud.entity.InteractiveTuto;
 
 public interface IFactoryInteractiveTuto {
 
-    InteractiveTuto create(int id, String libelle);
+    InteractiveTuto create(int id, String title, String description, String role, int order, int level);
 }

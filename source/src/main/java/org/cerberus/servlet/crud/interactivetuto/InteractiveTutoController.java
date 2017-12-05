@@ -18,7 +18,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@RestController()
+@RestController
 @RequestMapping("/interactiveTuto")
 public class InteractiveTutoController {
     @Autowired
@@ -34,11 +34,11 @@ public class InteractiveTutoController {
         }
 
         // TODO create a converter
-        InteractiveTutoDTO result = new InteractiveTutoDTO(it.getId(), it.getLibelle());
+        InteractiveTutoDTO result = new InteractiveTutoDTO(it.getId(), it.getTitle(), it.getDescription(), it.getRole(), it.getOrder(), it.getLevel().getValue());
         if (!CollectionUtils.isEmpty(it.getSteps())) {
-            result.setStep(new LinkedList<>());
+            result.setSteps(new LinkedList<>());
             for (InteractiveTutoStep step : it.getSteps()) {
-                result.getSteps().add(new InteractiveTutoStepDTO(step.getId(), step.getSelectorJquery(), step.getText(), step.getType()));
+                result.getSteps().add(new InteractiveTutoStepDTO(step.getId(), step.getSelectorJquery(), step.getText(), step.getType(), step.getAttr1()));
             }
         }
 
@@ -59,11 +59,11 @@ public class InteractiveTutoController {
 
 
     private InteractiveTutoDTO convertInteractiveTuto(InteractiveTuto it) {
-        InteractiveTutoDTO result = new InteractiveTutoDTO(it.getId(), it.getLibelle());
+        InteractiveTutoDTO result = new InteractiveTutoDTO(it.getId(), it.getTitle(), it.getDescription(), it.getRole(), it.getOrder(), it.getLevel().getValue());
         if (!CollectionUtils.isEmpty(it.getSteps())) {
-            result.setStep(new LinkedList<>());
+            result.setSteps(new LinkedList<>());
             for (InteractiveTutoStep step : it.getSteps()) {
-                result.getSteps().add(new InteractiveTutoStepDTO(step.getId(), step.getSelectorJquery(), step.getText(), step.getType()));
+                result.getSteps().add(new InteractiveTutoStepDTO(step.getId(), step.getSelectorJquery(), step.getText(), step.getType(), step.getAttr1()));
             }
         }
         return result;

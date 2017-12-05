@@ -4,13 +4,15 @@ public class InteractiveTutoStep {
     private int id;
     private String selectorJquery;
     private String text;
+    private String attr1;
     private InteractiveTutoStepType type;
 
-    public InteractiveTutoStep(int id, String selectorJquery, String text, InteractiveTutoStepType type) {
+    public InteractiveTutoStep(int id, String selectorJquery, String text, InteractiveTutoStepType type, String attr1) {
         this.id = id;
         this.selectorJquery = selectorJquery;
         this.text = text;
         this.type = type;
+        this.attr1=attr1;
     }
 
     public int getId() {
@@ -43,5 +45,13 @@ public class InteractiveTutoStep {
 
     public void setType(InteractiveTutoStepType type) {
         this.type = type;
+    }
+
+    public String getAttr1() {
+        return attr1;
+    }
+
+    public void setAttr1(String attr1) {
+        this.attr1 = attr1;
     }
 }
