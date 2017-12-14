@@ -33,8 +33,7 @@ $(document).ready(function () {
                 } else {
                     console.error('api/interactiveTuto/list respond with error' + status);
                 }
-            })
-
+            });
 
         $('#interactiveTutoModal').modal();
     });
@@ -163,6 +162,7 @@ class CerberusTuto {
     addMessage(jqueryId, messageStr) {
         let message = {
             element : jqueryId,
+            elementStr : jqueryId,
             intro : messageStr,
             step : this.cpt,
             type : 'default'
@@ -187,10 +187,23 @@ class CerberusTuto {
         this.intro.setOptions({steps:this.listMessageToUse});
 
         let _this=this;
+
+        // correct a bug into introJs. If element use "nth-child" selector,  we have to
+        // initialize and find it manually it before a change
+        this.intro.onbeforechange(function (targetElement) {
+
+            if(this._options.steps[this._currentStep].element != undefined && this._options.steps[this._currentStep].element.indexOf("nth-child") !== -1) {
+                let elmt = $(this._options.steps[this._currentStep].elementStr);
+                this._introItems[this._currentStep].position=null;
+                this._introItems[this._currentStep].element = document.querySelector(this._options.steps[this._currentStep].element);
+            }
+        });
+
         this.intro.onchange(function (targetElement) {
             let intro = this;
 
             var clickOnNextStep = function (targetElement) {
+                console.log("balbalkgzefokroferfre");
                 if (intro != undefined) {
                     waitForElementToDisplay(intro._options.steps[intro._currentStep + 1].element, 100, function () {
                         intro.nextStep();
@@ -199,22 +212,64 @@ class CerberusTuto {
             }
 
             if ($(targetElement).is("button")) { // if current element is a button
-                $(targetElement).click(clickOnNextStep);
+                $(targetElement).find("button").unbind("click.clickOnNextStep");
+                $(targetElement).bind("click.clickOnNextStep", clickOnNextStep);
             } else { // else, for each button into the element
                 $(targetElement).find("button").each(function (index, value) {
-                    $(value).click(clickOnNextStep);
+                    $(value).find("button").unbind("click.clickOnNextStep");
+                    $(value).bind("click.clickOnNextStep", clickOnNextStep);
                 });
+
+                $(document).on('DOMNodeInserted', function (e) {
+                    $(e.target).find("button").unbind("click.clickOnNextStep");
+                    $(e.target).find("button").bind("click.clickOnNextStep", clickOnNextStep);
+                });
+                // TODO ecouter les autre bouton qui appariasserait pour ajouter l'action clikc
             }
 
             // add the step and tutorial number on link to follow the tutorial throw web pages
             let message = _this.listMessage[intro._currentStep+parseInt(startStep)-1];
             // if we want change page after the click, we have to added
             if(message.type==='changeAfterClick') {
-                if ($(message.idLink) === undefined || $(message.idLink).attr("href") === undefined) {
-                    console.log("Element " + message.idLink + " is undefined or is not a link");
+                if ($(message.idLink) === undefined) {
+                    console.log("Element " + message.idLink + " is undefined");
                 } else {
-                    let symboleAdd = $(message.idLink).attr("href").includes("?") ? "&" : "?";
-                    $(message.idLink).attr("href", $(message.idLink).attr("href") + symboleAdd + "tutorielId=" + _this.tutorialId + "&startStep=" + (message.step+1));
+                    let typeObj = $(message.idLink).prop('nodeName');
+                    if (typeObj != undefined) {
+                        switch (typeObj.toLowerCase()) {
+                            case "button" :
+                            case "form" : // cas du form sans action, ne marchera pas avec un action
+                                let url = window.location.href;
+
+                                // get part after ?
+                                let getterParams = url.substr(url.indexOf("?") + 1, url.length - 1).split("&");
+
+                                // construct new url
+                                let newurl = "?";
+                                getterParams.forEach(function (param) {
+                                    let paramTab = param.split("=");
+                                    switch (paramTab[0]) {
+                                        case 'tutorielId' :
+                                            newurl += "&tutorielId=" + _this.tutorialId;
+                                            break;
+                                        case 'startStep' :
+                                            newurl += "&startStep=" + (message.step + 1);
+                                            break;
+                                        default :
+                                            newurl += "&" + param;
+                                            break;
+                                    }
+                                });
+
+                                window.history.pushState(null, "", newurl);
+
+                                break;
+                            case "a" :
+                                let symboleAdd = $(message.idLink).attr("href").includes("?") ? "&" : "?";
+                                $(message.idLink).attr("href", $(message.idLink).attr("href") + symboleAdd + "tutorielId=" + _this.tutorialId + "&startStep=" + (message.step + 1));
+                                break;
+                        }
+                    }
                 }
             }
         });
@@ -222,11 +277,11 @@ class CerberusTuto {
         this.intro.onafterchange(function(targetElement) {
             var intro=this;
 
-            // Bug introjs with modal bootstrat, we move introjs directly into the modal to cerrect it (bug with fix position)
+            // Bug introjs with modal bootstrat, we move introjs directly into the modal to correct it (bug with fix position)
             // by default introjs element on body
             $('.introjs-overlay, .introjs-helperLayer, .introjs-tooltipReferenceLayer').appendTo("body");
-            if(intro._options.steps[intro._currentStep + 1] !== undefined && intro._options.steps[intro._currentStep + 1].element !== undefined) {
-                waitForElementToDisplay(intro._options.steps[intro._currentStep + 1].element, 100, function () {
+            if(intro._options.steps[intro._currentStep ] !== undefined && intro._options.steps[intro._currentStep ].element !== undefined) {
+                waitForElementToDisplay(intro._options.steps[intro._currentStep].element, 100, function () {
                     if ($("div.modal.introjs-fixParent").length == 1) {
                         $('.introjs-overlay, .introjs-helperLayer, .introjs-tooltipReferenceLayer').appendTo("div.modal.introjs-fixParent");
                         $('.introjs-overlay').css("position", "absolute");

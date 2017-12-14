@@ -321,7 +321,7 @@ public class SeleniumServerService implements ISeleniumServerService {
             mes.setDescription(mes.getDescription().replace("%ERROR%", exception.toString()));
             throw new CerberusException(mes);
         } catch (Exception exception) {
-            LOG.error(logPrefix + exception.toString());
+            LOG.error(logPrefix + exception.toString(), exception);
             MessageGeneral mes = new MessageGeneral(MessageGeneralEnum.EXECUTION_FA_SELENIUM);
             mes.setDescription(mes.getDescription().replace("%MES%", exception.toString()));
             throw new CerberusException(mes);
@@ -339,7 +339,7 @@ public class SeleniumServerService implements ISeleniumServerService {
         /**
          * Instanciate DesiredCapabilities
          */
-        DesiredCapabilities caps = new DesiredCapabilities();
+        Capabilities caps = new Capabilities();
         if (!StringUtil.isNullOrEmpty(tCExecution.getBrowser())) {
             caps = this.setCapabilityBrowser(caps, tCExecution.getBrowser(), tCExecution);
         }
