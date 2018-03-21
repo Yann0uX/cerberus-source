@@ -14,7 +14,7 @@ public interface IInterractiveTutoDAO {
      *          if true, return all step associated to the tuto. If false, list is null
      * @return
      */
-    public InteractiveTuto getInteractiveTutorial(int id, boolean withStep);
+    public InteractiveTuto getInteractiveTutorial(int id, boolean withStep, String lang);
 
     /**
      * Return all step available
@@ -23,5 +23,5 @@ public interface IInterractiveTutoDAO {
      * @return
      *          if true, return all step associated to the tuto. If false, list is null
      */
-    public List<InteractiveTuto> getListInteractiveTutorial(boolean withStep);
+    public List<InteractiveTuto> getListInteractiveTutorial(boolean withStep, String lang);
 }

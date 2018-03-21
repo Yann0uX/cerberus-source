@@ -15,12 +15,12 @@ public class InteractiveTutoService implements IInterractiveTutoService {
     private InteractiveTutoDAO interactiveTutoDao;
 
     @Override
-    public InteractiveTuto getInteractiveTutorial(int id, boolean withStep) {
-        return interactiveTutoDao.getInteractiveTutorial(id,withStep);
+    public InteractiveTuto getInteractiveTutorial(int id, boolean withStep, String lang) {
+        return interactiveTutoDao.getInteractiveTutorial(id,withStep, lang);
     }
 
     @Override
-    public List<InteractiveTuto> getListInteractiveTutorial(boolean withStep) {
-        return interactiveTutoDao.getListInteractiveTutorial(withStep);
+    public List<InteractiveTuto> getListInteractiveTutorial(boolean withStep, String lang) {
+        return interactiveTutoDao.getListInteractiveTutorial(withStep, lang);
     }
 }

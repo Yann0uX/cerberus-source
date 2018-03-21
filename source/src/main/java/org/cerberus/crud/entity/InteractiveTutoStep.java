@@ -54,4 +54,5 @@ public class InteractiveTutoStep {
     public void setAttr1(String attr1) {
         this.attr1 = attr1;
     }
+
 }

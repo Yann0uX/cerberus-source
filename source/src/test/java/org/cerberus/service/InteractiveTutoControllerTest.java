@@ -81,7 +81,7 @@ public class InteractiveTutoControllerTest {
     public void initMocks() throws Exception {
         MockitoAnnotations.initMocks(this);
 
-        when(interactiveTutoDAO.getInteractiveTutorial(ID_INTERACTIVE_TUTO_1, true)).thenReturn(INTERACTIVE_TUTO_1);
+        when(interactiveTutoDAO.getInteractiveTutorial(ID_INTERACTIVE_TUTO_1, true, "fr")).thenReturn(INTERACTIVE_TUTO_1);
         when(databaseSpring.connect()).thenReturn(connection);
         when(databaseSpring.connect()).thenReturn(connection);
         when(connection.prepareStatement(anyString())).thenReturn(statement);

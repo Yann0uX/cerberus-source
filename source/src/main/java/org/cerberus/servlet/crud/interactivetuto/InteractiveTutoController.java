@@ -27,7 +27,7 @@ public class InteractiveTutoController {
     @RequestMapping("/get")
     public ResponseEntity<InteractiveTutoDTO> getInteractiveTuto(int id) {
 
-        InteractiveTuto it = interactiveTutoService.getInteractiveTutorial(id, true);
+        InteractiveTuto it = interactiveTutoService.getInteractiveTutorial(id, true, "fr");
 
         if (it == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -48,7 +48,7 @@ public class InteractiveTutoController {
     @RequestMapping("/list")
     public ResponseEntity<List<InteractiveTutoDTO>> getListInteractiveTuto() {
 
-        List<InteractiveTuto> it = interactiveTutoService.getListInteractiveTutorial(false);
+        List<InteractiveTuto> it = interactiveTutoService.getListInteractiveTutorial(false, "fr");
 
         if (CollectionUtils.isEmpty(it)) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);

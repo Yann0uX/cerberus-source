@@ -40,7 +40,6 @@ $(document).ready(function () {
 
     if(getUrlParameter("tutorielId") !== undefined) {
         let tutorielId = getUrlParameter("tutorielId");
-        console.log(tutorielId);
         let startStep = getUrlParameter("startStep");
         interractiveTutorial(tutorielId, startStep);
     }
@@ -76,7 +75,9 @@ function createNewButtonOnTutoShowroom(id, title, description, role, level) {
 
 }
 
-function interractiveTutorial(id, startStep=1) {console.log("coucou");
+var currentInteractiveTuto;
+
+function interractiveTutorial(id, startStep=1) {
 
     $.get('api/interactiveTuto/get', {
         id : id
@@ -86,7 +87,7 @@ function interractiveTutorial(id, startStep=1) {console.log("coucou");
             return;
         }
         let cerberusTuto = new CerberusTuto(data.id);
-
+        currentInteractiveTuto=cerberusTuto;
         if(data.steps == null || data.steps.length <= 0) {
             cerberusTuto.addGeneralMessage("Tutoriel is being written  ...");
         } else {
@@ -146,6 +147,8 @@ class CerberusTuto {
         this.tutorialId=tutorialId;
         this.listMessage = new Array();
         this.cpt=1;
+        this.working=false;
+        this.startStep=0;
     }
 
     addGeneralMessage(messageStr) {
@@ -179,9 +182,32 @@ class CerberusTuto {
         this.listMessage[this.listMessage.length-1].idLink=idLink;
     }
 
+    isWorking() {
+        return this.working;
+    }
+
+    getUrlParamter() {
+        return "tutorielId=" + this.getTutorialId() + "&startStep=" + this.intro.getNextStep();
+    }
+
+    getTutorialId() {
+        return this.tutorialId;
+    }
+
+    getCurrentStep() {
+        return parseInt(this.currentStep) +  parseInt(this.startStep);
+    }
+    getNextStep() {
+        return this.getCurrentStep()  +  parseInt(this.startStep)  + 1;
+    }
+    isLastStep() {
+        return this.currentStep == this.intro._options.length-1;
+    }
+
     start(startStep=1) {
         if(startStep<=0)startStep=0;
-
+        this.startStep=startStep;
+        this.currentStep=startStep;
         this.intro = introJs();
         this.listMessageToUse = this.listMessage.slice(startStep-1);
         this.intro.setOptions({steps:this.listMessageToUse});
@@ -192,39 +218,65 @@ class CerberusTuto {
         // initialize and find it manually it before a change
         this.intro.onbeforechange(function (targetElement) {
 
-            if(this._options.steps[this._currentStep].element != undefined && this._options.steps[this._currentStep].element.indexOf("nth-child") !== -1) {
+            if(this._options.steps[this._currentStep].element != undefined && this._options.steps[this._currentStep].element.indexOf("nth-child") !== -1 ||
+                this._introItems[this._currentStep].element === document.querySelector(".introjsFloatingElement") && typeof( this._introItems[this._currentStep].elementStr) === 'string') {
                 let elmt = $(this._options.steps[this._currentStep].elementStr);
-                this._introItems[this._currentStep].position=null;
-                this._introItems[this._currentStep].element = document.querySelector(this._options.steps[this._currentStep].element);
+                if(elmt != undefined) {
+                    this._introItems[this._currentStep].position = null;
+                    this._introItems[this._currentStep].element = document.querySelector(this._options.steps[this._currentStep].element);
+                }
             }
         });
 
+        this.intro.onbeforeexit(function() {
+            if(modalConfirmationIsVisible()) {
+                hideModalConfirmationIsVisible();
+                return true;
+            }
+
+            if(!_this.isLastStep()) {
+                showModalConfirmation(function () {
+                    console.log("ok");
+                    _this.intro.exit(true);
+                    this.working = false;
+                }, function () {
+                    console.log("non");
+                }, "Warning", "Voulez-vous vraiment quitter le tutoriel ? ");
+                return false;
+            }
+
+            return true;
+        });
+
+
         this.intro.onchange(function (targetElement) {
             let intro = this;
-
+            _this.currentStep = intro._currentStep;
             var clickOnNextStep = function (targetElement) {
-                console.log("balbalkgzefokroferfre");
-                if (intro != undefined) {
+                if (intro != undefined && intro._options.steps[intro._currentStep + 1] != undefined && intro._options.steps[intro._currentStep + 1].element != undefined) {
                     waitForElementToDisplay(intro._options.steps[intro._currentStep + 1].element, 100, function () {
                         intro.nextStep();
                     });
+                } else if (intro != undefined) {
+                    intro.nextStep();
                 }
             }
 
             if ($(targetElement).is("button")) { // if current element is a button
-                $(targetElement).find("button").unbind("click.clickOnNextStep");
+                $(targetElement).unbind("click.clickOnNextStep");
                 $(targetElement).bind("click.clickOnNextStep", clickOnNextStep);
             } else { // else, for each button into the element
                 $(targetElement).find("button").each(function (index, value) {
-                    $(value).find("button").unbind("click.clickOnNextStep");
+                    $(value).unbind("click.clickOnNextStep");
                     $(value).bind("click.clickOnNextStep", clickOnNextStep);
                 });
 
+                //  ecouter les autre bouton qui appariasserait pour ajouter l'action clikc
                 $(document).on('DOMNodeInserted', function (e) {
                     $(e.target).find("button").unbind("click.clickOnNextStep");
                     $(e.target).find("button").bind("click.clickOnNextStep", clickOnNextStep);
                 });
-                // TODO ecouter les autre bouton qui appariasserait pour ajouter l'action clikc
+
             }
 
             // add the step and tutorial number on link to follow the tutorial throw web pages
@@ -235,43 +287,21 @@ class CerberusTuto {
                     console.log("Element " + message.idLink + " is undefined");
                 } else {
                     let typeObj = $(message.idLink).prop('nodeName');
+
+                    // by default, we add action on dom
                     if (typeObj != undefined) {
-                        switch (typeObj.toLowerCase()) {
-                            case "button" :
-                            case "form" : // cas du form sans action, ne marchera pas avec un action
-                                let url = window.location.href;
-
-                                // get part after ?
-                                let getterParams = url.substr(url.indexOf("?") + 1, url.length - 1).split("&");
-
-                                // construct new url
-                                let newurl = "?";
-                                getterParams.forEach(function (param) {
-                                    let paramTab = param.split("=");
-                                    switch (paramTab[0]) {
-                                        case 'tutorielId' :
-                                            newurl += "&tutorielId=" + _this.tutorialId;
-                                            break;
-                                        case 'startStep' :
-                                            newurl += "&startStep=" + (message.step + 1);
-                                            break;
-                                        default :
-                                            newurl += "&" + param;
-                                            break;
-                                    }
-                                });
-
-                                window.history.pushState(null, "", newurl);
-
-                                break;
-                            case "a" :
-                                let symboleAdd = $(message.idLink).attr("href").includes("?") ? "&" : "?";
-                                $(message.idLink).attr("href", $(message.idLink).attr("href") + symboleAdd + "tutorielId=" + _this.tutorialId + "&startStep=" + (message.step + 1));
-                                break;
-                        }
+                        prepareChangeAfterClick(typeObj, message,_this);
                     }
+
+                    $(message.element).on('DOMNodeInserted', function (e) {
+                        let typeObj = $(e.target).find(message.idLink).prop('nodeName');
+                        if (typeObj != undefined) {
+                            prepareChangeAfterClick(typeObj, message, _this);
+                        }
+                    });
                 }
             }
+
         });
 
         this.intro.onafterchange(function(targetElement) {
@@ -289,22 +319,63 @@ class CerberusTuto {
                     }
                     $('.introjs-helperLayer, .introjs-tooltipReferenceLayer').removeClass("introjs-fixedTooltip");
                 });
-             }
+            }
         });
 
         // wait for the first element
         if(this.listMessage[startStep-1] != undefined && this.listMessage[startStep-1].element != undefined) {
             waitForElementToDisplay(this.listMessage[startStep - 1].element, 100, function() {
                 _this.intro.start();
+                _this.working=true;
             });
         } else {
             this.intro.start();
+            this.working=true;
         }
     }
 
 }
 
 
+
+function prepareChangeAfterClick(typeObj, message, _this) {
+    switch (typeObj.toLowerCase()) {
+        case "button" :
+        case "form" : // cas du form sans action, ne marchera pas avec un action
+            let url = window.location.href;
+
+            // get part after ?
+            let getterParams = url.substr(url.indexOf("?") + 1, url.length - 1).split("&");
+
+            // construct new url
+            let newurl = "?";
+            getterParams.forEach(function (param) {
+                let paramTab = param.split("=");
+                switch (paramTab[0]) {
+                    case 'tutorielId' :
+                        newurl += "&tutorielId=" + _this.tutorialId;
+                        break;
+                    case 'startStep' :
+                        newurl += "&startStep=" + (message.step + 1);
+                        break;
+                    default :
+                        newurl += "&" + param;
+                        break;
+                }
+            });
+
+            window.history.pushState(null, "", newurl);
+
+            break;
+        case "a" :
+
+            $(message.idLink).each(function (index, data) {
+                let symboleAdd = $(data).attr("href").includes("?") ? "&" : "?";
+                $(data).attr("href", $(data).attr("href") + symboleAdd + "tutorielId=" + _this.tutorialId + "&startStep=" + (message.step + 1));
+            });
+            break;
+    }
+}
 
 
 function getUrlParameter(sParam) {
