@@ -86,22 +86,13 @@ public interface ITestCaseService {
     boolean deleteTestCase(TestCase testCase);
 
     /**
-     * @param tc
-     * @param columnName Name of the column
-     * @param value New value of the columnName
-     */
-    void updateTestCaseField(TestCase tc, String columnName, String value);
-
-
-
-    /**
      * @param campaign the campaign name
      * @param countries arrays of country
      * @return the list of TCase used in the campaign and activated for the
      * countries
      * @since 1.0.2
      */
-    List<TestCase> findTestCaseByCampaignNameAndCountries(String campaign, String[] countries);
+    AnswerItem<List<TestCase>> findTestCaseByCampaignNameAndCountries(String campaign, String[] countries);
 
     public void updateTestCase(TestCase tc) throws CerberusException;
 
@@ -165,7 +156,6 @@ public interface ITestCaseService {
      * @param creator
      * @param implementer
      * @param system
-     * @param testBattery
      * @param campaign
      * @param labelid
      * @param priority
@@ -174,13 +164,15 @@ public interface ITestCaseService {
      * @param length
      * @return
      */
-    public AnswerList readByVarious(String[] test, String[] idProject, String[] app, String[] creator, String[] implementer, String[] system,
-            String[] testBattery, String[] campaign, String[] labelid, String[] priority, String[] group, String[] status, int length);
+    public AnswerList<List<TestCase>> readByVarious(String[] test, String[] idProject, String[] app, String[] creator, String[] implementer, String[] system,
+            String[] campaign, String[] labelid, String[] priority, String[] group, String[] status, int length);
 
     public AnswerList<List<String>> readDistinctValuesByCriteria(String system, String test, String searchParameter, Map<String, List<String>> individualSearch, String columnName);
 
     /**
      *
+     * @param keyTest
+     * @param keyTestCase
      * @param testCase
      * @return
      */
@@ -266,5 +258,12 @@ public interface ITestCaseService {
      * @return
      */
     public boolean hasPermissionsCreate(TestCase testCase, HttpServletRequest request);
+    
+    /**
+     * 
+     * @param service
+     * @return
+     */
+    public AnswerList findTestCasesThatUseService(String service);
 
 }

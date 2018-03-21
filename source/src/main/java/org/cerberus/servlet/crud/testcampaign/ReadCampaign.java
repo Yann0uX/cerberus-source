@@ -35,11 +35,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.cerberus.crud.entity.Campaign;
-import org.cerberus.crud.entity.CampaignContent;
 import org.cerberus.crud.entity.CampaignLabel;
 import org.cerberus.crud.entity.CampaignParameter;
 import org.cerberus.crud.entity.TestCase;
-import org.cerberus.crud.service.ICampaignContentService;
 import org.cerberus.crud.service.ICampaignLabelService;
 import org.cerberus.crud.service.ICampaignParameterService;
 import org.cerberus.crud.service.ICampaignService;
@@ -168,6 +166,7 @@ public class ReadCampaign extends HttpServlet {
         String columnToSort[] = sColumns.split(",");
         String columnName = columnToSort[columnToSortParameter];
         String sort = ParameterParserUtil.parseStringParam(request.getParameter("sSortDir_0"), "asc");
+        List<String> individualLike = new ArrayList(Arrays.asList(ParameterParserUtil.parseStringParam(request.getParameter("sLike"), "").split(",")));
 
         campaignService = appContext.getBean(ICampaignService.class);
 
@@ -175,7 +174,11 @@ public class ReadCampaign extends HttpServlet {
         for (int a = 0; a < columnToSort.length; a++) {
             if (null != request.getParameter("sSearch_" + a) && !request.getParameter("sSearch_" + a).isEmpty()) {
                 List<String> search = new ArrayList(Arrays.asList(request.getParameter("sSearch_" + a).split(",")));
-                individualSearch.put(columnToSort[a], search);
+                if(individualLike.contains(columnToSort[a])) {
+                	individualSearch.put(columnToSort[a]+":like", search);
+                }else {
+                	individualSearch.put(columnToSort[a], search);
+                }  
             }
         }
 
@@ -201,12 +204,6 @@ public class ReadCampaign extends HttpServlet {
     }
 
     private JSONObject convertCampaigntoJSONObject(Campaign campaign) throws JSONException {
-        Gson gson = new Gson();
-        JSONObject result = new JSONObject(gson.toJson(campaign));
-        return result;
-    }
-
-    private JSONObject convertCampaignContenttoJSONObject(CampaignContent campaign) throws JSONException {
         Gson gson = new Gson();
         JSONObject result = new JSONObject(gson.toJson(campaign));
         return result;
@@ -242,19 +239,6 @@ public class ReadCampaign extends HttpServlet {
             p = (Campaign) answer.getItem();
             JSONObject response = convertCampaigntoJSONObject(p);
 
-            if (request.getParameter("battery") != null) {
-                ICampaignContentService campaignContentService = appContext.getBean(ICampaignContentService.class);
-                AnswerList resp = campaignContentService.readByCampaign(key);
-                if (resp.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {//the service was able to perform the query, then we should get all values
-                    JSONArray a = new JSONArray();
-                    for (Object c : resp.getDataList()) {
-                        CampaignContent cc = (CampaignContent) c;
-                        JSONObject ccJSON = convertCampaignContenttoJSONObject(cc);
-                        a.put(ccJSON);
-                    }
-                    response.put("battery", a);
-                }
-            }
             if (request.getParameter("parameter") != null) {
                 ICampaignParameterService campaignParameterService = appContext.getBean(ICampaignParameterService.class);
                 AnswerList resp = campaignParameterService.readByCampaign(key);
@@ -283,10 +267,10 @@ public class ReadCampaign extends HttpServlet {
                 ITestCaseService testCaseService = appContext.getBean(ITestCaseService.class);
                 String[] campaignList = new String[1];
                 campaignList[0] = key;
-                AnswerList resp = testCaseService.readByVarious(null, null, null, null, null, null, null, campaignList, null, null, null, null, -1);
+                AnswerItem<List<TestCase>> resp = testCaseService.findTestCaseByCampaignNameAndCountries(key, null);
                 if (resp.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {//the service was able to perform the query, then we should get all values
                     JSONArray a = new JSONArray();
-                    for (Object c : resp.getDataList()) {
+                    for (Object c : resp.getItem()) {
                         TestCase cc = (TestCase) c;
                         a.put(convertTestCasetoJSONObject(cc));
                     }
@@ -312,11 +296,17 @@ public class ReadCampaign extends HttpServlet {
         String sColumns = ParameterParserUtil.parseStringParam(request.getParameter("sColumns"), "para,valC,valS,descr");
         String columnToSort[] = sColumns.split(",");
 
-        Map<String, List<String>> individualSearch = new HashMap<String, List<String>>();
+        List<String> individualLike = new ArrayList(Arrays.asList(ParameterParserUtil.parseStringParam(request.getParameter("sLike"), "").split(",")));
+
+        Map<String, List<String>> individualSearch = new HashMap<>();
         for (int a = 0; a < columnToSort.length; a++) {
             if (null != request.getParameter("sSearch_" + a) && !request.getParameter("sSearch_" + a).isEmpty()) {
-                List<String> search = new ArrayList(Arrays.asList(request.getParameter("sSearch_" + a).split(",")));
-                individualSearch.put(columnToSort[a], search);
+            	List<String> search = new ArrayList(Arrays.asList(request.getParameter("sSearch_" + a).split(",")));
+            	if(individualLike.contains(columnToSort[a])) {
+                	individualSearch.put(columnToSort[a]+":like", search);
+                }else {
+                	individualSearch.put(columnToSort[a], search);
+                } 
             }
         }
 

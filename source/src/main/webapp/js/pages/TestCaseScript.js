@@ -687,19 +687,11 @@ function saveScript(property) {
 				var parser = document.createElement('a');
 				parser.href = window.location.href;
 
-                var tutorielId = GetURLParameter("tutorielId",null);
-                var startStep = GetURLParameter("startStep",null);
-
-                var tutorialParameters = "";
-                if(tutorielId != null && startStep != null) {
-                    tutorialParameters= "&tutorielId=" + tutorielId + "&startStep=" + startStep;
-				}
-
 				var url_sort = "";
 				if (!(isEmpty(stepData))) {
 					url_sort = "&step=" + stepData.sort;
 				}
-				var new_uri = parser.pathname + "?test=" + GetURLParameter("test") + "&testcase=" + GetURLParameter("testcase") + url_sort + tutorialParameters + "&tabactive=" + tabActive;
+				var new_uri = parser.pathname + "?test=" + GetURLParameter("test") + "&testcase=" + GetURLParameter("testcase") + url_sort + "&tabactive=" + tabActive;
 
 				setModif(false);
 

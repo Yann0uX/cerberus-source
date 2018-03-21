@@ -141,12 +141,13 @@ function renderOptionsForTestCaseList(data) {
             $('#testCaseList #createTestCaseButton').click(data, function () {
                 // Getting the Test from the 1st row of the testcase table.
                 if ($("#testCaseTable td.sorting_1")[0] !== undefined) {
-                    var firstRowTest = $("#testCaseTable td.sorting_1")[0].textContent;
+                    var firstRowTest = $("#testCaseTable td.sorting_1")[0].textContent; 
 //                    addTestCaseClick(firstRowTest);
                     openModalTestCase(firstRowTest, undefined, "ADD");
                 } else {
+                	var testQueryString = GetURLParameter("test",undefined);
 //                    addTestCaseClick();
-                    openModalTestCase(undefined, undefined, "ADD");
+                    openModalTestCase(testQueryString, undefined, "ADD");
                 }
             });
             $('#testCaseList #createBrpMassButton').click(massActionClick);
@@ -384,7 +385,7 @@ function setActive(checkbox) {
     $.ajax({
         url: "UpdateTestCase",
         method: "POST",
-        data: {test: test, testCase: testCase, active: active},
+        data: {test: test, testCase: testCase, originalTest: test, originalTestCase: testCase, active: active},
         dataType: "json",
         success: function (data) {
             if (active === "Y") {
@@ -474,7 +475,7 @@ function aoColumnsFunc(countries, tableId) {
             "bSearchable": false,
             "title": doc.getDocOnline("page_global", "columnAction"),
             "sDefaultContent": "",
-            "sWidth": "190px",
+            "sWidth": "160px",
             "mRender": function (data, type, obj) {
                 var buttons = "";
 
@@ -532,8 +533,17 @@ function aoColumnsFunc(countries, tableId) {
         {
             "data": "testCase",
             "sName": "tec.testCase",
+            "like": true,
             "title": doc.getDocOnline("testcase", "TestCase"),
             "sWidth": "82px",
+            "sDefaultContent": ""
+        },
+        {
+            "data": "description",
+            "sName": "tec.description",
+            "like": true,
+            "title": doc.getDocOnline("testcase", "Description"),
+            "sWidth": "300px",
             "sDefaultContent": ""
         },
         {
@@ -551,9 +561,9 @@ function aoColumnsFunc(countries, tableId) {
             }
         },
         {
-            "data": "system",
-            "sName": "app.system",
-            "title": doc.getDocOnline("invariant", "SYSTEM"),
+            "data": "status",
+            "sName": "tec.status",
+            "title": doc.getDocOnline("testcase", "Status"),
             "sWidth": "100px",
             "sDefaultContent": ""
         },
@@ -565,23 +575,9 @@ function aoColumnsFunc(countries, tableId) {
             "sDefaultContent": ""
         },
         {
-            "data": "project",
-            "sName": "tec.project",
-            "title": doc.getDocOnline("project", "idproject"),
-            "sWidth": "100px",
-            "sDefaultContent": ""
-        },
-        {
-            "data": "usrCreated",
-            "sName": "tec.usrCreated",
-            "title": doc.getDocOnline("testcase", "Creator"),
-            "sWidth": "100px",
-            "sDefaultContent": ""
-        },
-        {
-            "data": "usrModif",
-            "sName": "tec.usrModif",
-            "title": doc.getDocOnline("testcase", "LastModifier"),
+            "data": "system",
+            "sName": "app.system",
+            "title": doc.getDocOnline("invariant", "SYSTEM"),
             "sWidth": "100px",
             "sDefaultContent": ""
         },
@@ -611,24 +607,25 @@ function aoColumnsFunc(countries, tableId) {
             }
         },
         {
-            "data": "status",
-            "sName": "tec.status",
-            "title": doc.getDocOnline("testcase", "Status"),
-            "sWidth": "100px",
+            "data": "priority",
+            "sName": "tec.priority",
+            "title": doc.getDocOnline("invariant", "PRIORITY"),
+            "sWidth": "70px",
             "sDefaultContent": ""
         },
         {
             "data": "function",
+            "like": true,
             "sName": "tec.function",
             "title": doc.getDocOnline("testcase", "Function"),
             "sWidth": "100px",
             "sDefaultContent": ""
         },
         {
-            "data": "priority",
-            "sName": "tec.priority",
-            "title": doc.getDocOnline("invariant", "PRIORITY"),
-            "sWidth": "70px",
+            "data": "project",
+            "sName": "tec.project",
+            "title": doc.getDocOnline("project", "idproject"),
+            "sWidth": "100px",
             "sDefaultContent": ""
         },
         {
@@ -641,6 +638,7 @@ function aoColumnsFunc(countries, tableId) {
         {
             "data": "refOrigine",
             "sName": "tec.refOrigine",
+            "like": true,
             "title": doc.getDocOnline("testcase", "RefOrigine"),
             "sWidth": "80px",
             "sDefaultContent": ""
@@ -653,17 +651,44 @@ function aoColumnsFunc(countries, tableId) {
             "sDefaultContent": ""
         },
         {
-            "data": "description",
-            "sName": "tec.description",
-            "title": doc.getDocOnline("testcase", "Description"),
-            "sWidth": "300px",
+            "data": "dateCreated",
+            "sName": "tec.dateCreated",
+            "like": true,
+            "title": doc.getDocOnline("transversal", "DateCreated"),
+            "sWidth": "150px",
             "sDefaultContent": ""
         },
         {
-            "data": "dateCreated",
-            "sName": "tec.dateCreated",
-            "title": doc.getDocOnline("testcase", "TCDateCrea"),
+            "data": "usrCreated",
+            "sName": "tec.usrCreated",
+            "title": doc.getDocOnline("transversal", "UsrCreated"),
+            "sWidth": "100px",
+            "sDefaultContent": ""
+        },
+        {
+            "data": "testCaseVersion",
+            "sName": "tec.testCaseVersion",
+            "title": doc.getDocOnline("testcase", "TestCaseVersion"),
+            "sWidth": "50px",
+            "sDefaultContent": ""
+        },
+        {
+            "data": "dateModif",
+            "like": true,
+            "sName": "tec.dateModif",
+            "title": doc.getDocOnline("transversal", "DateModif"),
             "sWidth": "150px",
+            "sDefaultContent": "",
+            "mRender": function (data, type, oObj) {
+                return getDate(oObj["dateModif"]);
+            }
+
+        },
+        {
+            "data": "usrModif",
+            "sName": "tec.usrModif",
+            "title": doc.getDocOnline("transversal", "UsrModif"),
+            "sWidth": "100px",
             "sDefaultContent": ""
         }
     ];

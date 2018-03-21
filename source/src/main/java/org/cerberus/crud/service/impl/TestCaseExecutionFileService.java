@@ -19,6 +19,7 @@
  */
 package org.cerberus.crud.service.impl;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import org.apache.logging.log4j.Logger;
@@ -94,6 +95,12 @@ public class TestCaseExecutionFileService implements ITestCaseExecutionFileServi
     }
     
     @Override
+    public boolean exist(long exeId, String level) {
+        AnswerItem objectAnswer = readByKey(exeId, level, null);
+        return (objectAnswer.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) && (objectAnswer.getItem() != null); // Call was successfull and object was found.
+    }
+    
+    @Override
     public Answer create(TestCaseExecutionFile object) {
         return testCaseExecutionFileDAO.create(object);
     }
@@ -116,6 +123,70 @@ public class TestCaseExecutionFileService implements ITestCaseExecutionFileServi
             return create(object);
         }
     }
+    @Override
+    public void deleteFile(String root, String fileName) {
+    	File currentFile = new File(root + File.separator +fileName);
+    	currentFile.delete();
+    }
+    
+    @Override
+    public Answer saveManual(TestCaseExecutionFile object) {
+    	if(this.exist(object.getId())) {
+    		return update(object);
+    	}else {
+    		return create(object);
+    	}
+    }
+    
+    /**
+     * this function allow to check if extension exist in invariants table
+     */
+    
+    @Override
+    public String checkExtension(String fileName, String extension) {
+		if(extension.isEmpty() || extension != fileName.substring(fileName.lastIndexOf('.')+1, fileName.length())) {
+			if(fileName.contains(".")) {
+				extension = fileName.substring(fileName.lastIndexOf('.')+1, fileName.length());
+				extension = extension.trim().toUpperCase();
+			}else {
+				extension = "BIN";
+			}
+			
+			switch(extension) {
+				case TestCaseExecutionFile.FILETYPE_JPG:
+					extension = "JPG";
+					break;
+				case TestCaseExecutionFile.FILETYPE_PNG:
+					extension = "PNG";
+					break;
+				case TestCaseExecutionFile.FILETYPE_JPEG:
+					extension = "JPG";
+					break;
+				case TestCaseExecutionFile.FILETYPE_PDF:
+					extension = "PDF";
+					break;
+				case TestCaseExecutionFile.FILETYPE_JSON:
+					extension = "JSON";
+					break;
+				case TestCaseExecutionFile.FILETYPE_XML:
+					extension = "XML";
+					break;
+				case TestCaseExecutionFile.FILETYPE_TXT:
+					extension = "TXT";
+					break;
+				case TestCaseExecutionFile.FILETYPE_BIN:
+					extension = "BIN";
+					break;
+				default:
+					extension = "BIN";
+					break;
+			}
+        }
+		
+		return extension;
+    }
+    
+    
     @Override
     public TestCaseExecutionFile convert(AnswerItem answerItem) throws CerberusException {
         if (answerItem.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {

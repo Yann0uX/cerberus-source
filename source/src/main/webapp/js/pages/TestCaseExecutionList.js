@@ -153,7 +153,7 @@ function aoColumnsFunc() {
         {
             "data": "id",
             "sName": "exe.id",
-            "bSearchable": false,
+            "like":true,
             "title": doc.getDocOnline("page_executiondetail", "id"),
             "sWidth": "50px",
             "sDefaultContent": ""
@@ -167,8 +167,23 @@ function aoColumnsFunc() {
         },
         {
             "data": "testcase",
+            "like":true,
             "sName": "exe.testcase",
             "title": doc.getDocOnline("testcase", "TestCase"),
+            "sWidth": "70px",
+            "sDefaultContent": ""
+        },
+        {
+            "data": "testCaseVersion",
+            "sName": "exe.testCaseVersion",
+            "title": doc.getDocOnline("testcase", "TestCaseVersion"),
+            "sWidth": "50px",
+            "sDefaultContent": ""
+        },
+        {
+            "data": "status",
+            "sName": "exe.status",
+            "title": doc.getDocOnline("page_executiondetail", "status"),
             "sWidth": "70px",
             "sDefaultContent": ""
         },
@@ -188,7 +203,10 @@ function aoColumnsFunc() {
         },
         {
             "data": "description",
+            "like":true,
             "sName": "exe.description",
+            "bSearchable": true,
+            "like":true,
             "title": doc.getDocOnline("testcase", "Description"),
             "sWidth": "150px",
             "sDefaultContent": ""
@@ -245,7 +263,7 @@ function aoColumnsFunc() {
         {
             "data": "start",
             "sName": "exe.start",
-            "bSearchable": false,
+            "like":true,
             "title": doc.getDocOnline("page_executiondetail", "start"),
             "sWidth": "70px",
             "sDefaultContent": "",
@@ -257,7 +275,7 @@ function aoColumnsFunc() {
         {
             "data": "end",
             "sName": "exe.end",
-            "bSearchable": false,
+            "like":true,
             "title": doc.getDocOnline("page_executiondetail", "end"),
             "sWidth": "70px",
             "sDefaultContent": "",
@@ -269,7 +287,7 @@ function aoColumnsFunc() {
         {
             "data": "controlMessage",
             "sName": "exe.controlmessage",
-            "bSearchable": false,
+            "like":true,
             "title": doc.getDocOnline("page_executiondetail", "controlmessage"),
             "sWidth": "70px",
             "sDefaultContent": ""
@@ -298,6 +316,7 @@ function aoColumnsFunc() {
         {
             "data": "tag",
             "sName": "exe.tag",
+            "like":true,
             "title": doc.getDocOnline("page_executiondetail", "tag"),
             "sWidth": "70px",
             "sDefaultContent": "",
@@ -318,16 +337,9 @@ function aoColumnsFunc() {
             "sDefaultContent": ""
         },
         {
-            "data": "status",
-            "sName": "exe.status",
-            "title": doc.getDocOnline("page_executiondetail", "status"),
-            "sWidth": "70px",
-            "sDefaultContent": ""
-        },
-        {
             "data": "crbVersion",
             "sName": "exe.crbVersion",
-            "bSearchable": false,
+            "like":true,
             "title": doc.getDocOnline("page_executiondetail", "cerberusversion"),
             "sWidth": "70px",
             "sDefaultContent": ""
@@ -342,7 +354,6 @@ function aoColumnsFunc() {
         {
             "data": "screenSize",
             "sName": "exe.screensize",
-            "bSearchable": false,
             "title": doc.getDocOnline("page_executiondetail", "screensize"),
             "sWidth": "70px",
             "sDefaultContent": ""
@@ -350,7 +361,6 @@ function aoColumnsFunc() {
         {
             "data": "userAgent",
             "sName": "exe.userAgent",
-            "bSearchable": false,
             "title": doc.getDocOnline("page_executiondetail", "userAgent"),
             "sWidth": "130px",
             "sDefaultContent": ""
@@ -358,7 +368,6 @@ function aoColumnsFunc() {
         {
             "data": "queueId",
             "sName": "exe.queueId",
-            "bSearchable": false,
             "title": doc.getDocOnline("page_executiondetail", "queueId"),
             "sWidth": "130px",
             "sDefaultContent": ""

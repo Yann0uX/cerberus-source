@@ -25,7 +25,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.cerberus.engine.entity.Identifier;
 import org.cerberus.engine.entity.MessageEvent;
-import org.cerberus.crud.entity.Parameter;
 import org.cerberus.engine.entity.Session;
 import org.cerberus.engine.entity.SwipeAction;
 import org.cerberus.crud.service.impl.ParameterService;
@@ -44,10 +43,10 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.awt.geom.Line2D;
-import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
+import org.cerberus.engine.entity.SwipeAction.Direction;
 
 /**
  * @author bcivel
@@ -60,13 +59,14 @@ public abstract class AppiumService implements IAppiumService {
      * The Appium swipe duration parameter which is got thanks to the
      * {@link ParameterService}
      */
-    private static final String APPIUM_SWIPE_DURATION_PARAMETER = "appium_swipeDuration";
+    private static final String CERBERUS_APPIUM_SWIPE_DURATION_PARAMETER = "cerberus_appium_swipe_duration";
 
     /**
      * The default Appium swipe duration if no
-     * {@link AppiumService#APPIUM_SWIPE_DURATION_PARAMETER} has been defined
+     * {@link AppiumService#CERBERUS_APPIUM_SWIPE_DURATION_PARAMETER} has been
+     * defined
      */
-    private static final int DEFAULT_APPIUM_SWIPE_DURATION = 2000;
+    private static final int DEFAULT_CERBERUS_APPIUM_SWIPE_DURATION = 2000;
 
     @Autowired
     private ParameterService parameters;
@@ -237,77 +237,64 @@ public abstract class AppiumService implements IAppiumService {
         return driver.findElement(locator);
     }
 
+    /**
+     *
+     * @param session
+     * @param action
+     * @return
+     * @throws IllegalArgumentException
+     */
     @Override
-    public MessageEvent swipe(Session session, SwipeAction action) {
-        try {
-            // Compute the swipe direction according to the given swipe action
-            Dimension window = session.getAppiumDriver().manage().window().getSize();
-            SwipeAction.Direction direction;
-            switch (action.getActionType()) {
-                case UP:
-                    direction = SwipeAction.Direction.fromLine(
-                            new Line2D.Double(
-                                    window.getWidth() / 2,
-                                    2 * window.getHeight() / 3,
-                                    window.getWidth() / 2,
-                                    window.getHeight() / 3
-                            )
-                    );
-                    break;
-                case DOWN:
-                    direction = SwipeAction.Direction.fromLine(
-                            new Line2D.Double(
-                                    window.getWidth() / 2,
-                                    window.getHeight() / 3,
-                                    window.getWidth() / 2,
-                                    2 * window.getHeight() / 3
-                            )
-                    );
-                    break;
-                case LEFT:
-                    direction = SwipeAction.Direction.fromLine(
-                            new Line2D.Double(
-                                    2 * window.getWidth() / 3,
-                                    window.getHeight() / 2,
-                                    window.getWidth() / 3,
-                                    window.getHeight() / 2
-                            )
-                    );
-                    break;
-                case RIGHT:
-                    direction = SwipeAction.Direction.fromLine(
-                            new Line2D.Double(
-                                    window.getWidth() / 3,
-                                    window.getHeight() / 2,
-                                    2 * window.getWidth() / 3,
-                                    window.getHeight() / 2
-                            )
-                    );
-                    break;
-                case CUSTOM:
-                    direction = action.getCustomDirection();
-                    break;
-                default:
-                    return new MessageEvent(MessageEventEnum.ACTION_FAILED_SWIPE)
-                            .resolveDescription("DIRECTION", action.getActionType().name())
-                            .resolveDescription("REASON", "Unknown direction");
-            }
-
-            // Get the parametrized swipe duration
-            Parameter duration = parameters.findParameterByKey(APPIUM_SWIPE_DURATION_PARAMETER, "");
-
-            // Do the swipe thanks to the Appium driver
-            TouchAction dragNDrop
-                    = new TouchAction(session.getAppiumDriver()).longPress(direction.getX1(), direction.getY1(), Duration.ofMillis(duration == null ? DEFAULT_APPIUM_SWIPE_DURATION : Integer.parseInt(duration.getValue())))
-                            .moveTo(direction.getX2(), direction.getY2()).release();
-            dragNDrop.perform();
-
-            return new MessageEvent(MessageEventEnum.ACTION_SUCCESS_SWIPE).resolveDescription("DIRECTION", action.getActionType().name());
-        } catch (Exception e) {
-            LOG.warn("Unable to swipe screen due to " + e.getMessage(), e);
-            return new MessageEvent(MessageEventEnum.ACTION_FAILED_SWIPE)
-                    .resolveDescription("DIRECTION", action.getActionType().name())
-                    .resolveDescription("REASON", e.getMessage());
+    public Direction getDirectionForSwipe(Session session, SwipeAction action) throws IllegalArgumentException {
+        Dimension window = session.getAppiumDriver().manage().window().getSize();
+        SwipeAction.Direction direction;
+        switch (action.getActionType()) {
+            case UP:
+                direction = SwipeAction.Direction.fromLine(
+                        new Line2D.Double(
+                                window.getWidth() / 2,
+                                2 * window.getHeight() / 3,
+                                0,
+                                - window.getHeight() / 3
+                        )
+                );
+                break;
+            case DOWN:
+                direction = SwipeAction.Direction.fromLine(
+                        new Line2D.Double(
+                                window.getWidth() / 2,
+                                window.getHeight() / 3,
+                                0,
+                                window.getHeight() / 3
+                        )
+                );
+                break;
+            case LEFT:
+                direction = SwipeAction.Direction.fromLine(
+                        new Line2D.Double(
+                                2 * window.getWidth() / 3,
+                                window.getHeight() / 2,
+                                - window.getWidth() / 3,
+                                0
+                        )
+                );
+                break;
+            case RIGHT:
+                direction = SwipeAction.Direction.fromLine(
+                        new Line2D.Double(
+                                window.getWidth() / 3,
+                                window.getHeight() / 2,
+                                window.getWidth() / 3,
+                                0
+                        )
+                );
+                break;
+            case CUSTOM:
+                direction = action.getCustomDirection();
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown direction");
         }
+        return direction;
     }
 }

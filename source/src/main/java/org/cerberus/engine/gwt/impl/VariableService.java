@@ -227,6 +227,7 @@ public class VariableService implements IVariableService {
         stringToDecode = stringToDecode.replace("%SYS_COUNTRYGP9%", tCExecution.getCountryObj().getGp9());
         stringToDecode = stringToDecode.replace("%SYS_TEST%", tCExecution.getTest());
         stringToDecode = stringToDecode.replace("%SYS_TESTCASE%", tCExecution.getTestCase());
+        stringToDecode = stringToDecode.replace("%SYS_TESTCASEDESCRIPTION%", tCExecution.getDescription());
         stringToDecode = stringToDecode.replace("%SYS_SSIP%", tCExecution.getSeleniumIP());
         stringToDecode = stringToDecode.replace("%SYS_SSPORT%", tCExecution.getSeleniumPort());
         stringToDecode = stringToDecode.replace("%SYS_TAG%", tCExecution.getTag());
@@ -259,6 +260,7 @@ public class VariableService implements IVariableService {
         stringToDecode = stringToDecode.replace("%system.COUNTRYGP9%", tCExecution.getCountryObj().getGp9());
         stringToDecode = stringToDecode.replace("%system.TEST%", tCExecution.getTest());
         stringToDecode = stringToDecode.replace("%system.TESTCASE%", tCExecution.getTestCase());
+        stringToDecode = stringToDecode.replace("%system.TESTCASEDESCRIPTION%", tCExecution.getDescription());
         stringToDecode = stringToDecode.replace("%system.SSIP%", tCExecution.getSeleniumIP());
         stringToDecode = stringToDecode.replace("%system.SSPORT%", tCExecution.getSeleniumPort());
         stringToDecode = stringToDecode.replace("%system.TAG%", tCExecution.getTag());
@@ -267,13 +269,18 @@ public class VariableService implements IVariableService {
         stringToDecode = stringToDecode.replace("%system.EXESTORAGEURL%", recorderService.getStorageSubFolderURL(tCExecution.getId()));
         nowInMS = new Date().getTime();
         stringToDecode = stringToDecode.replace("%system.EXEELAPSEDMS%", String.valueOf(nowInMS - tCExecution.getStart()));
+        
+        
 
         /**
          * Trying to replace by system environment variables from Step Execution
          * .
          */
         if (tCExecution.getTestCaseStepExecutionList() != null) {
-
+        	
+        	stringToDecode = stringToDecode.replace("%system.CURRENTSTEP_SORT%", String.valueOf(tCExecution.getTestCaseStepExecutionList().get(tCExecution.getTestCaseStepExecutionList().size() - 1).getSort()));
+        	stringToDecode = stringToDecode.replace("%SYS_CURRENTSTEP_SORT%", String.valueOf(tCExecution.getTestCaseStepExecutionList().get(tCExecution.getTestCaseStepExecutionList().size() - 1).getSort()));
+        	
             // %SYS_CURRENTSTEP_INDEX%
             if (stringToDecode.contains("%SYS_CURRENTSTEP_")) {
                 TestCaseStepExecution currentStep = (TestCaseStepExecution) tCExecution.getTestCaseStepExecutionList().get(tCExecution.getTestCaseStepExecutionList().size() - 1);

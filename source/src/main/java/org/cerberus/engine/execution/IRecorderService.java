@@ -21,13 +21,13 @@ package org.cerberus.engine.execution;
 
 import java.util.HashMap;
 import java.util.List;
-import javax.xml.soap.SOAPMessage;
 import org.apache.commons.fileupload.FileItem;
 import org.cerberus.crud.entity.AppService;
 import org.cerberus.crud.entity.TestCaseExecution;
 import org.cerberus.crud.entity.TestCaseExecutionFile;
 import org.cerberus.crud.entity.TestCaseStepActionControlExecution;
 import org.cerberus.crud.entity.TestCaseStepActionExecution;
+import org.cerberus.util.answer.AnswerItem;
 
 /**
  *
@@ -72,7 +72,6 @@ public interface IRecorderService {
      */
     List<TestCaseExecutionFile> recordServiceCall(TestCaseExecution testCaseExecution, TestCaseStepActionExecution testCaseStepActionExecution, Integer control, String property, AppService service);
 
-
     /**
      *
      * @param runId
@@ -82,6 +81,20 @@ public interface IRecorderService {
      * @return
      */
     TestCaseExecutionFile recordTestDataLibProperty(Long runId, String property, int propertyIndex, List<HashMap<String, String>> result);
+
+    /**
+     *
+     * @param testCaseStepActionControlExecution
+     * @param testCaseStepActionExecution
+     * @param extension
+     * @param desc
+     * @param id
+     * @param file
+     * @param fileName
+     * @param fileID
+     * @return
+     */
+    AnswerItem recordManuallyFile(TestCaseStepActionExecution testCaseStepActionExecution, TestCaseStepActionControlExecution testCaseStepActionControlExecution, String extension, String desc, FileItem file, Integer id, String fileName, Integer fileID);
 
     /**
      *

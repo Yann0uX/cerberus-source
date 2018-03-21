@@ -30,6 +30,7 @@
         <script type="text/javascript" src="js/pages/TestCaseExecution.js"></script>
         <script type="text/javascript" src="js/transversalobject/TestCaseExecutionQueue.js"></script>
         <script type="text/javascript" src="js/transversalobject/TestCase.js"></script>
+        <script type="text/javascript" src="js/transversalobject/File.js"></script>
         <link rel="stylesheet" type="text/css" href="css/pages/TestCaseExecution.css">
         <link rel="stylesheet" type="text/css" href="dependencies/Bootstrap-inversebutton/inversebutton.css">
     </head>
@@ -41,6 +42,7 @@
             <%@ include file="include/global/messagesArea.html"%>
             <%@ include file="include/transversalobject/TestCaseExecutionQueue.html"%>
             <%@ include file="include/transversalobject/TestCase.html"%>
+            <%@ include file="include/transversalobject/File.html"%>
             <h1 class="page-title-line">Execution Detail</h1>
             <div class="panel panel-default" id="testCaseConfig">
                 <div>
@@ -52,64 +54,85 @@
                                 </div>
                             </div>
                             <div class="col-lg-6 pull-left">
-                                <div class="">
+                                <div class="text-nowrap">
                                     <span id="idlabel"></span>
-                                    <span> - </span>
+                                    <span name="Separator">Loading...</span>
                                     <span id="test"></span>
-                                    <span> - </span>
+                                    <span name="Separator"> </span>
                                     <span id="testcase"></span>
-                                    <span> - </span>
+                                    <span name="Separator"> </span>
                                     <span id="country"></span>
-                                    <span> - </span>
+                                    <span name="Separator"> </span>
                                     <span id="environment"></span>
-                                    <span> - </span>
+                                    <span name="Separator"> </span>
                                     <span id="controlstatus" style="font-weight: 900"></span>
                                 </div>
-                                <div class="">
-                                    <span id="tcDescription" style="font-size:.9em;margin:0px;line-height:1;height:.95em;">Descr</span>
+                                <div class="text-nowrap">
+                                    <span id="tcDescription" style="font-size:.9em;margin:0px;line-height:1;height:.95em;"></span>
                                 </div>
-                                <div class="">
-                                    <span id="exReturnMessage" style="font-size:.9em;margin:0px;line-height:1;height:.95em;">Descr</span>
+                                <div class="text-nowrap">
+                                    <span id="exReturnMessage" style="font-size:.9em;margin:0px;line-height:1;height:.95em;"></span>
                                 </div>
                             </div>
                             <div class="col-lg-6" style="padding: 0px;">
+                                <div id="RefreshQueueButton">
+                                    <button id="refreshQueue" class="btn btn-default">Refresh</button>
+                                    <button id="editQueue" class="btn btn-default">Edit Queue Entry</button>
+                                </div>
                                 <div id="TestCaseButton">
-                                    <a href="#" class="btn btn-default pull-right" id="saveTestCaseExecution" data-toggle="tooltip" style="margin-left: 1px; display: none;"><span class="glyphicon glyphicon-save"></span> Save</a>
-                                     <div class="btn-group pull-right">
-	                                    <a href="#" class="btn btn-default" id="runTestCase" data-toggle="tooltip" style="margin-left: 1px;"><span class="glyphicon glyphicon-fast-backward"></span> Run</a>
-	                                    <a type="button" class="btn btn-default dropdown-toggle"  data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <span class="caret"></span>
-                                            <span class="sr-only">Toggle Dropdown</span>
-                                        </a>
-	                                    <ul class="dropdown-menu">
-	                                    	<li><a href="#" class="btn btn-default" id="ExecutionQueueDup"><span class="glyphicon glyphicon-tasks"></span> Duplicate new Execution</a></li>
-	                                    </ul>
-	                                </div>
-                                    <div class="btn-group pull-right">
-                                        <a href="#" class="btn btn-default pull-left" id="lastExecution" style="margin-left: 1px"><span class="glyphicon glyphicon-fast-backward"></span> Last Executions</a>
-                                        <a type="button" class="btn btn-default dropdown-toggle"  data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <span class="caret"></span>
-                                            <span class="sr-only">Toggle Dropdown</span>
-                                        </a>
-                                        <ul class="dropdown-menu">
-                                            <li><a href="#" class="btn btn-default" id="lastExecutionwithEnvCountry"><span class="glyphicon glyphicon-fast-backward"></span> Last Executions With Country Env</a></li>
-                                            <li><a href="#" class="btn btn-default" id="ExecutionByTag" style="margin-left: 1px; margin-right: 1px;"><span class="glyphicon glyphicon-tasks"></span> See Execution By Tag</a></li>
-                                            <li><a href="#" class="btn btn-default" id="ExecutionQueue"><span class="glyphicon glyphicon-tasks"></span> See Queue Parameters</a></li>
-                                            <li><a href="#" class="btn btn-default" id="ExecutionQueueByTag"><span class="glyphicon glyphicon-tasks"></span> See Queue By Tag</a></li>
-                                        </ul>
+
+                                    <div class="btn-group pull-right" role="group" aria-label="Button group with nested dropdown" style="margin-top: 10px;">
+
+                                        <div class="btn-group ">
+                                            <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                Go To <span class="caret"></span>
+                                            </button>
+                                            <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                                                <a><button class="btn btn-default pull-left" id="lastExecution" style="margin-left: 5px; margin-right: 5px;"><span class="glyphicon glyphicon-list"></span> Last Executions</button></a>
+                                                <a><button class="btn btn-default pull-left" id="lastExecutionwithEnvCountry" style="margin-left: 5px; margin-right: 5px;"><span class="glyphicon glyphicon-list"></span> Last Executions With Country Env</button></a>
+                                                <a><button class="btn btn-default pull-left" id="ExecutionByTag" style="margin-left: 5px; margin-right: 5px;"><span class="glyphicon glyphicon-tasks"></span> See Execution By Tag</button></a>
+                                                <a><button class="btn btn-default pull-left" id="ExecutionQueue" style="margin-left: 5px; margin-right: 5px;"><span class="glyphicon glyphicon-eye-open"></span> See Queue Parameters</button></a>
+                                                <a><button class="btn btn-default pull-left" id="ExecutionQueueByTag" style="margin-left: 5px; margin-right: 5px;"><span class="glyphicon glyphicon-list"></span> See Queue By Tag</button></a>
+                                            </div>
+                                        </div>
+
+                                        <div class="btn-group">
+                                            <button id="btnGroupDrop2" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                Run <span class="caret"></span>
+                                            </button>
+                                            <div class="dropdown-menu" aria-labelledby="btnGroupDrop2">
+                                                <a><button class="btn btn-default pull-left" id="runTestCase" style="margin-left: 5px; margin-left: 5px;" data-toggle="tooltip" ><span class="glyphicon glyphicon-play"></span>Run</button></a>
+                                                <a><button class="btn btn-default pull-left" id="rerunTestCase" style="margin-left: 5px; margin-left: 5px;"><span class="glyphicon glyphicon-forward"></span>ReRun</button></a>
+                                                <a><button class="btn btn-default pull-left" id="rerunFromQueue" style="margin-left: 5px; margin-left: 5px;"><span class="glyphicon glyphicon-forward"></span>From Queue</button></a>
+                                            </div>
+                                        </div>
+
+                                        <div class="btn-group">
+                                            <a type="button" class="btn btn-default" id="editTcInfo" ><span class="glyphicon glyphicon-new-window"></span> Edit Test Case</a>
+                                            <button id="btnGroupDrop4" type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <span class="caret"></span>
+                                                <span class="sr-only">Toggle Dropdown</span>
+                                            </button>
+                                            <div class="dropdown-menu">
+                                                <a><button class="btn btn-default" id="editTcStepInfo" style="margin-left: 5px; margin-left: 5px;" ><span class="glyphicon glyphicon-new-window"></span> Edit Test Case from the current Step</button></a>
+                                                <a><button class="btn btn-default" id="editTcHeader" style="margin-left: 5px; margin-left: 5px;" ><span class="glyphicon glyphicon-pencil"></span> Edit Test Case Header</button></a>
+                                            </div>
+                                        </div>
+
+
+                                        <div class="btn-group ">
+                                            <button class="btn btn-default" id="saveTestCaseExecution" disabled style="margin-left: 1px;"><span class="glyphicon glyphicon-save"></span> Save</button>
+                                            <button id="btnGroupDrop3" type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" disabled="">
+                                                <span class="caret"></span>
+                                                <span class="sr-only">Toggle Dropdown</span>
+                                            </button>
+                                            <div class="dropdown-menu"  aria-labelledby="btnGroupDrop3">
+                                                <a><button class="btn btn-default pull-left" id="deleteTestCaseExecution" style="margin-left: 5px; margin-left: 5px;" disabled><span class="glyphicon glyphicon-trash"></span>Delete</button></a>
+                                            </div>
+                                        </div>
+
                                     </div>
-                                    <div class="btn-group pull-right">
-                                        <a href="#" class="btn btn-default pull-left" id="editTcInfo" ><span class="glyphicon glyphicon-pencil"></span> Edit Test Case</a>
-                                        <a type="button" id="editTcToggleButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <span class="caret"></span>
-                                            <span class="sr-only">Toggle Dropdown</span>
-                                        </a>
-                                        <ul class="dropdown-menu">
-                                            <li><a href="#" class="btn btn-default" id="editTcStepInfo"><span class="glyphicon glyphicon-pencil"></span> Edit Test Case from the current Step</a></li>
-                                            <li><a href="#" class="btn btn-default" id="editTcHeader"><span class="glyphicon glyphicon-pencil"></span> Edit Test Case Header</a></li>
-                                        </ul>
-                                    </div>
-                                    
+
                                     <div class="side-item pull-right"></div>
 
                                 </div>
@@ -117,7 +140,7 @@
                             <div class="clearfix"></div>
                         </div>
                         <div id="NavtabsScriptEdit" background-color: white">
-                            <ul id="tabsScriptEdit" class="nav nav-tabs" data-tabs="tabs">
+                             <ul id="tabsScriptEdit" class="nav nav-tabs" data-tabs="tabs">
                                 <li class="active"><a data-toggle="tab" href="#tabSteps" id="editTabStep" name="tabSteps">Steps</a></li>
                                 <li><a data-toggle="tab" href="#tabProperties" id="editTabProperties" name="tabProperties">Properties</a></li>
                                 <li><a data-toggle="tab" href="#tabDetail" id="editTabDetail" name="tabDetail">Execution Details</a></li>
@@ -231,76 +254,98 @@
                             <div class="row">
                                 <div class="col-sm-2">
                                     <div class="form-group">
-                                        <label for="controlstatus2">Control Status</label>
-                                        <input type="text" class="form-control" id="controlstatus2" placeholder="Control Status" readonly>
+                                        <label for="id">ID</label>
+                                        <input type="text" class="form-control" id="id" placeholder="ID" readonly>
                                     </div>
                                 </div>
                                 <div class="col-sm-2">
                                     <div class="form-group">
-                                        <label for="id">ID</label>
-                                        <input type="text" class="form-control" id="id" placeholder="ID" readonly>
+                                        <label for="controlstatus2">Control Status</label>
+                                        <input type="text" class="form-control" id="controlstatus2" placeholder="Control Status" readonly>
                                     </div>
                                 </div>
                                 <div class="col-sm-8">
                                     <div class="form-group">
                                         <label for="controlmessage">Control Message</label>
-                                        <input type="text" class="form-control" id="controlmessage" placeholder="Control Message" readonly>
+                                        <textarea class="form-control" id="controlmessage" readonly></textarea> 
                                     </div>
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-sm-3">
-                                    <div class="form-group">
-                                        <label for="start">Start</label>
-                                        <input type="text" class="form-control" id="start" placeholder="Start" readonly>
-                                    </div>
-                                </div>
-                                <div class="col-sm-3">
-                                    <div class="form-group">
-                                        <label for="end">End</label>
-                                        <input type="text" class="form-control" id="end" placeholder="End" readonly>
-                                    </div>
-                                </div>
-                                <div class="col-sm-3">
-                                    <div class="form-group">
-                                        <label for="executor">Executor</label>
-                                        <input type="text" class="form-control" id="executor" placeholder="Executor" readonly>
-                                    </div>
-                                </div>
-                                <div class="col-sm-3">
-                                    <div class="form-group">
-                                        <label for="status">Status</label>
-                                        <input type="text" class="form-control" id="status" placeholder="Status" readonly>
-                                    </div>
-                                </div> 
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-4">
-                                    <div class="form-group">
-                                        <label for="cerberusversion">Cerberus Version</label>
-                                        <input type="text" class="form-control" id="cerberusversion" placeholder="Cerberus Version" readonly>
-                                    </div>
-                                </div>
                                 <div class="col-sm-4">
                                     <div class="form-group">
                                         <label>Bug ID</label>
                                         <div id="bugID"></div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
+
                                 <div class="col-sm-8">
                                     <div class="form-group">
                                         <label for="tag">Tag</label>
                                         <div class="input-group">
                                             <input type="text" class="form-control" id="tag" placeholder="Tag" readonly>
                                             <span class="input-group-btn">
-                                                <button id="editTag" class="btn btn-default">Edit</button>
+                                                <button id="editTags" class="btn btn-default">Edit</button>
                                                 <button id="saveTag" class="btn btn-primary" style="display : none;">Save</button>
                                             </span>
                                         </div>
                                     </div>
+                                </div>                            </div>
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        <label for="start">Start</label>
+                                        <input type="text" class="form-control" id="start" placeholder="Start" readonly>
+                                    </div>
                                 </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        <label for="end">End</label>
+                                        <input type="text" class="form-control" id="end" placeholder="End" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-sm-2">
+                                    <div class="form-group">
+                                        <label for="executor">Executor</label>
+                                        <input type="text" class="form-control" id="executor" placeholder="Executor" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-sm-2">
+                                    <div class="form-group">
+                                        <label for="cerberusversion">Cerberus Version</label>
+                                        <input type="text" class="form-control" id="cerberusversion" placeholder="Cerberus Version" readonly>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        <label for="exetest">Test</label>
+                                        <input type="text" class="form-control" id="exetest"  readonly>
+                                    </div>
+                                </div> 
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <label for="exetestcase">TestCase</label>
+                                        <input type="text" class="form-control" id="exetestcase" readonly>
+                                    </div>
+                                </div> 
+                                <div class="col-sm-2">
+                                    <div class="form-group">
+                                        <label for="testcaseversion">Version</label>
+                                        <input type="text" class="form-control" id="testcaseversion" readonly>
+                                    </div>
+                                </div> 
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <label for="status">Status</label>
+                                        <input type="text" class="form-control" id="status" readonly>
+                                    </div>
+                                </div> 
+                            </div>
+
+                            <div class="row">
                             </div>
 
                             <div class="row">
@@ -386,7 +431,7 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-sm-3">
+                                <div class="col-sm-6">
                                     <div class="form-group">
                                         <label for="userAgent">User Agent</label>
                                         <input type="text" class="form-control" id="userAgent" placeholder="userAgent" readonly>
@@ -400,8 +445,8 @@
                                 </div>
                                 <div class="col-sm-3">
                                     <div class="form-group">
-                                        <label for="verbose">Verbose</label>
-                                        <input type="text" class="form-control" id="verbose" placeholder="Verbose" readonly>
+                                        <label for="robotdecli">Robot Declination</label>
+                                        <input type="text" class="form-control" id="robotdecli" readonly>
                                     </div>
                                 </div>
                             </div>
@@ -412,6 +457,12 @@
                         </div>
                         <div class="center marginTop25 tab-pane fade" id="tabEnv">
                             <div class="row">
+                                <div class="col-sm-2">
+                                    <div class="form-group">
+                                        <label for="system">System</label>
+                                        <input type="text" class="form-control" id="system" readonly>
+                                    </div>
+                                </div>
                                 <div class="col-sm-3">
                                     <div class="form-group">
                                         <label for="application">Application</label>

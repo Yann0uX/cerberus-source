@@ -134,6 +134,7 @@ public class ActionService implements IActionService {
                 // If anything wrong with the decode --> we stop here with decode message in the action result.
                 testCaseStepActionExecution.setActionResultMessage(answerDecode.getResultMessage().resolveDescription("FIELD", "Action Value1"));
                 testCaseStepActionExecution.setExecutionResultMessage(new MessageGeneral(answerDecode.getResultMessage().getMessage()));
+                testCaseStepActionExecution.setStopExecution(answerDecode.getResultMessage().isStopTest());
                 testCaseStepActionExecution.setEnd(new Date().getTime());
                 LOG.debug("Action interupted due to decode 'Action Value1' Error.");
                 return testCaseStepActionExecution;
@@ -158,6 +159,7 @@ public class ActionService implements IActionService {
                 // If anything wrong with the decode --> we stop here with decode message in the action result.
                 testCaseStepActionExecution.setActionResultMessage(answerDecode.getResultMessage().resolveDescription("FIELD", "Action Value2"));
                 testCaseStepActionExecution.setExecutionResultMessage(new MessageGeneral(answerDecode.getResultMessage().getMessage()));
+                testCaseStepActionExecution.setStopExecution(answerDecode.getResultMessage().isStopTest());
                 testCaseStepActionExecution.setEnd(new Date().getTime());
                 LOG.debug("Action interupted due to decode 'Action Value2' Error.");
                 return testCaseStepActionExecution;
@@ -185,15 +187,6 @@ public class ActionService implements IActionService {
 
         try {
             switch (testCaseStepActionExecution.getAction()) {
-                case TestCaseStepAction.ACTION_KEYPRESS:
-                    res = this.doActionKeyPress(tCExecution, value1, value2);
-                    break;
-                case TestCaseStepAction.ACTION_HIDEKEYBOARD:
-                    res = this.doActionHideKeyboard(tCExecution);
-                    break;
-                case TestCaseStepAction.ACTION_SWIPE:
-                    res = this.doActionSwipe(tCExecution, value1, value2);
-                    break;
                 case TestCaseStepAction.ACTION_CLICK:
                     res = this.doActionClick(tCExecution, value1, value2);
                     break;
@@ -209,6 +202,9 @@ public class ActionService implements IActionService {
                 case TestCaseStepAction.ACTION_RIGHTCLICK:
                     res = this.doActionRightClick(tCExecution, value1, value2);
                     break;
+                case TestCaseStepAction.ACTION_MOUSEOVER:
+                    res = this.doActionMouseOver(tCExecution, value1, value2);
+                    break;
                 case TestCaseStepAction.ACTION_FOCUSTOIFRAME:
                     res = this.doActionFocusToIframe(tCExecution, value1, value2);
                     break;
@@ -221,12 +217,6 @@ public class ActionService implements IActionService {
                 case TestCaseStepAction.ACTION_MANAGEDIALOG:
                     res = this.doActionManageDialog(tCExecution, value1, value2);
                     break;
-                case TestCaseStepAction.ACTION_MOUSEOVER:
-                    res = this.doActionMouseOver(tCExecution, value1, value2);
-                    break;
-                case TestCaseStepAction.ACTION_MOUSEOVERANDWAIT:
-                    res = this.doActionMouseOverAndWait(tCExecution, value1, value2);
-                    break;
                 case TestCaseStepAction.ACTION_OPENURLWITHBASE:
                     res = this.doActionOpenURL(tCExecution, value1, value2, true);
                     break;
@@ -237,6 +227,9 @@ public class ActionService implements IActionService {
                 case TestCaseStepAction.ACTION_OPENURL:
                     res = this.doActionOpenURL(tCExecution, value1, value2, false);
                     break;
+                case TestCaseStepAction.ACTION_EXECUTEJS:
+                    res = this.doActionExecuteJS(tCExecution, value1, value2);
+                    break;
                 case TestCaseStepAction.ACTION_OPENAPP:
                     res = this.doActionOpenApp(tCExecution, value1);
                     break;
@@ -246,8 +239,17 @@ public class ActionService implements IActionService {
                 case TestCaseStepAction.ACTION_SELECT:
                     res = this.doActionSelect(tCExecution, value1, value2);
                     break;
+                case TestCaseStepAction.ACTION_KEYPRESS:
+                    res = this.doActionKeyPress(tCExecution, value1, value2);
+                    break;
                 case TestCaseStepAction.ACTION_TYPE:
                     res = this.doActionType(tCExecution, value1, value2, propertyName);
+                    break;
+                case TestCaseStepAction.ACTION_HIDEKEYBOARD:
+                    res = this.doActionHideKeyboard(tCExecution);
+                    break;
+                case TestCaseStepAction.ACTION_SWIPE:
+                    res = this.doActionSwipe(tCExecution, value1, value2);
                     break;
                 case TestCaseStepAction.ACTION_WAIT:
                     res = this.doActionWait(tCExecution, value1, value2);
@@ -257,9 +259,6 @@ public class ActionService implements IActionService {
                     break;
                 case TestCaseStepAction.ACTION_CALLSERVICE:
                     res = this.doActionCallService(testCaseStepActionExecution, value1);
-                    break;
-                case TestCaseStepAction.ACTION_REMOVEDIFFERENCE:
-                    res = this.doActionRemoveDifference(testCaseStepActionExecution, value1, value2);
                     break;
                 case TestCaseStepAction.ACTION_EXECUTESQLUPDATE:
                     res = this.doActionExecuteSQLUpdate(tCExecution, value1, value2);
@@ -272,6 +271,19 @@ public class ActionService implements IActionService {
                     break;
                 case TestCaseStepAction.ACTION_DONOTHING:
                     res = new MessageEvent(MessageEventEnum.ACTION_SUCCESS);
+                    break;
+                // DEPRECATED ACTIONS FROM HERE.
+                case TestCaseStepAction.ACTION_MOUSEOVERANDWAIT:
+                    res = this.doActionMouseOverAndWait(tCExecution, value1, value2);
+                    res.setDescription(MESSAGE_DEPRECATED + " " + res.getDescription());
+                    logEventService.createForPrivateCalls("ENGINE", "mouseOverAndWait", MESSAGE_DEPRECATED + " Deprecated Action triggered by TestCase : ['" + testCaseStepActionExecution.getTest() + "|" + testCaseStepActionExecution.getTestCase() + "']");
+                    LOG.warn(MESSAGE_DEPRECATED + " Deprecated Action mouseOverAndWait triggered by TestCase : ['" + testCaseStepActionExecution.getTest() + "'|'" + testCaseStepActionExecution.getTestCase() + "']");
+                    break;
+                case TestCaseStepAction.ACTION_REMOVEDIFFERENCE:
+                    res = this.doActionRemoveDifference(testCaseStepActionExecution, value1, value2);
+                    res.setDescription(MESSAGE_DEPRECATED + " " + res.getDescription());
+                    logEventService.createForPrivateCalls("ENGINE", "removeDifference", MESSAGE_DEPRECATED + " Deprecated Action triggered by TestCase : ['" + testCaseStepActionExecution.getTest() + "|" + testCaseStepActionExecution.getTestCase() + "']");
+                    LOG.warn(MESSAGE_DEPRECATED + " Deprecated Action removeDifference triggered by TestCase : ['" + testCaseStepActionExecution.getTest() + "'|'" + testCaseStepActionExecution.getTestCase() + "']");
                     break;
                 case TestCaseStepAction.ACTION_GETPAGESOURCE:
                     res = this.doActionGetPageSource(testCaseStepActionExecution);
@@ -391,6 +403,35 @@ public class ActionService implements IActionService {
         } catch (CerberusEventException ex) {
             LOG.fatal("Error doing Action Click :" + ex);
             return ex.getMessageError();
+        }
+    }
+
+    private MessageEvent doActionExecuteJS(TestCaseExecution tCExecution, String value1, String value2) {
+
+        MessageEvent message;
+        String script = value1;
+        String valueFromJS;
+        try {
+
+            if (tCExecution.getApplicationObj().getType().equalsIgnoreCase(Application.TYPE_GUI)) {
+
+                valueFromJS = this.webdriverService.getValueFromJS(tCExecution.getSession(), script);
+                message = new MessageEvent(MessageEventEnum.ACTION_SUCCESS_EXECUTEJS);
+                message.setDescription(message.getDescription().replace("%SCRIPT%", script));
+                message.setDescription(message.getDescription().replace("%VALUE%", valueFromJS));
+                return message;
+
+            }
+            message = new MessageEvent(MessageEventEnum.ACTION_NOTEXECUTED_NOTSUPPORTED_FOR_APPLICATION);
+            message.setDescription(message.getDescription().replace("%ACTION%", "executeJS"));
+            message.setDescription(message.getDescription().replace("%APPLICATIONTYPE%", tCExecution.getApplicationObj().getType()));
+            return message;
+        } catch (Exception e) {
+            message = new MessageEvent(MessageEventEnum.ACTION_FAILED_EXECUTEJS);
+            String messageString = e.getMessage().split("\n")[0];
+            message.setDescription(message.getDescription().replace("%EXCEPTION%", messageString));
+            LOG.debug("Exception Running JS Script :" + messageString);
+            return message;
         }
     }
 
@@ -810,38 +851,45 @@ public class ActionService implements IActionService {
         }
     }
 
-    private MessageEvent doActionKeyPress(TestCaseExecution tCExecution, String object, String property) {
+    private MessageEvent doActionKeyPress(TestCaseExecution tCExecution, String value1, String value2) {
         try {
+            String appType = tCExecution.getApplicationObj().getType();
             /**
-             * Check object and property are not null
+             * Check object and property are not null For IPA and APK, only
+             * value2 (key to press) is mandatory For GUI and FAT, both
+             * parameters are mandatory
              */
-            if (object == null && property == null) {
-                return new MessageEvent(MessageEventEnum.ACTION_FAILED_KEYPRESS);
+//            if (appType.equalsIgnoreCase(Application.TYPE_APK) || appType.equalsIgnoreCase(Application.TYPE_IPA)) {
+            if (StringUtil.isNullOrEmpty(value2)) {
+                return new MessageEvent(MessageEventEnum.ACTION_FAILED_KEYPRESS_MISSINGKEY).resolveDescription("APPLICATIONTYPE", appType);
             }
+//            } else if (appType.equalsIgnoreCase(Application.TYPE_GUI) || appType.equalsIgnoreCase(Application.TYPE_FAT)) {
+//                if (StringUtil.isNullOrEmpty(value1) || StringUtil.isNullOrEmpty(value2)) {
+//                    return new MessageEvent(MessageEventEnum.ACTION_FAILED_KEYPRESS);
+//                }
+//            }
             /**
              * Get Identifier (identifier, locator)
              */
-            Identifier identifier = identifierService.convertStringToIdentifier(object);
+            Identifier objectIdentifier = identifierService.convertStringToIdentifier(value1);
 
-            if (tCExecution.getApplicationObj().getType().equalsIgnoreCase(Application.TYPE_GUI)) {
-                if (identifier.getIdentifier().equals(SikuliService.SIKULI_IDENTIFIER_PICTURE)) {
-                    return sikuliService.doSikuliActionKeyPress(tCExecution.getSession(), identifier.getLocator(), property);
+            if (appType.equalsIgnoreCase(Application.TYPE_GUI)) {
+                if (objectIdentifier.getIdentifier().equals(SikuliService.SIKULI_IDENTIFIER_PICTURE)) {
+                    return sikuliService.doSikuliActionKeyPress(tCExecution.getSession(), objectIdentifier.getLocator(), value2);
                 } else {
-                    identifierService.checkWebElementIdentifier(identifier.getIdentifier());
-                    return webdriverService.doSeleniumActionKeyPress(tCExecution.getSession(), identifier, property);
+                    identifierService.checkWebElementIdentifier(objectIdentifier.getIdentifier());
+                    return webdriverService.doSeleniumActionKeyPress(tCExecution.getSession(), objectIdentifier, value2);
                 }
-            } else if (tCExecution.getApplicationObj().getType().equalsIgnoreCase(Application.TYPE_APK)) {
-                identifierService.checkWebElementIdentifier(identifier.getIdentifier());
-                return androidAppiumService.keyPress(tCExecution.getSession(), object);
-            } else if (tCExecution.getApplicationObj().getType().equalsIgnoreCase(Application.TYPE_IPA)) {
-                identifierService.checkWebElementIdentifier(identifier.getIdentifier());
-                return iosAppiumService.keyPress(tCExecution.getSession(), object);
-            } else if (tCExecution.getApplicationObj().getType().equalsIgnoreCase(Application.TYPE_FAT)) {
-                return sikuliService.doSikuliActionKeyPress(tCExecution.getSession(), identifier.getLocator(), property);
+            } else if (appType.equalsIgnoreCase(Application.TYPE_APK)) {
+                return androidAppiumService.keyPress(tCExecution.getSession(), value2);
+            } else if (appType.equalsIgnoreCase(Application.TYPE_IPA)) {
+                return iosAppiumService.keyPress(tCExecution.getSession(), value2);
+            } else if (appType.equalsIgnoreCase(Application.TYPE_FAT)) {
+                return sikuliService.doSikuliActionKeyPress(tCExecution.getSession(), objectIdentifier.getLocator(), value2);
             } else {
                 return new MessageEvent(MessageEventEnum.ACTION_NOTEXECUTED_NOTSUPPORTED_FOR_APPLICATION)
                         .resolveDescription("ACTION", "KeyPress")
-                        .resolveDescription("APPLICATIONTYPE", tCExecution.getApplicationObj().getType());
+                        .resolveDescription("APPLICATIONTYPE", appType);
             }
         } catch (CerberusEventException ex) {
             LOG.fatal("Error doing Action KeyPress :" + ex);
@@ -962,28 +1010,28 @@ public class ActionService implements IActionService {
         }
     }
 
-    private MessageEvent doActionSelect(TestCaseExecution tCExecution, String object, String property) {
+    private MessageEvent doActionSelect(TestCaseExecution tCExecution, String value1, String value2) {
         MessageEvent message;
         try {
             /**
              * Check object and property are not null
              */
-            if (object == null && property == null) {
-                return new MessageEvent(MessageEventEnum.ACTION_FAILED_KEYPRESS);
+            if (StringUtil.isNullOrEmpty(value1) || StringUtil.isNullOrEmpty(value2)) {
+                return new MessageEvent(MessageEventEnum.ACTION_FAILED_SELECT);
             }
             /**
              * Get Identifier (identifier, locator)
              */
-            Identifier identifierObject = identifierService.convertStringToIdentifier(object);
-            Identifier identifierProperty = identifierService.convertStringToSelectIdentifier(property);
+            Identifier identifierObject = identifierService.convertStringToIdentifier(value1);
+            Identifier identifierValue = identifierService.convertStringToSelectIdentifier(value2);
 
             identifierService.checkWebElementIdentifier(identifierObject.getIdentifier());
-            identifierService.checkSelectOptionsIdentifier(identifierProperty.getIdentifier());
+            identifierService.checkSelectOptionsIdentifier(identifierValue.getIdentifier());
 
             if (tCExecution.getApplicationObj().getType().equalsIgnoreCase(Application.TYPE_GUI)
                     || tCExecution.getApplicationObj().getType().equalsIgnoreCase(Application.TYPE_APK)
                     || tCExecution.getApplicationObj().getType().equalsIgnoreCase(Application.TYPE_IPA)) {
-                return webdriverService.doSeleniumActionSelect(tCExecution.getSession(), identifierObject, identifierProperty);
+                return webdriverService.doSeleniumActionSelect(tCExecution.getSession(), identifierObject, identifierValue);
             }
             message = new MessageEvent(MessageEventEnum.ACTION_NOTEXECUTED_NOTSUPPORTED_FOR_APPLICATION);
             message.setDescription(message.getDescription().replace("%ACTION%", "Select"));
@@ -1207,10 +1255,11 @@ public class ActionService implements IActionService {
                     // We calculate the property here.
                     long now = new Date().getTime();
                     TestCaseExecutionData tcExeData;
+
                     tcExeData = factoryTestCaseExecutionData.create(tCExecution.getId(), tccp.getProperty(), 1, tccp.getDescription(), null, tccp.getType(),
                             tccp.getValue1(), tccp.getValue2(), null, null, now, now, now, now, new MessageEvent(MessageEventEnum.PROPERTY_PENDING),
-                            tccp.getRetryNb(), tccp.getRetryPeriod(), tccp.getDatabase(), tccp.getValue1(), tccp.getValue2(), tccp.getLength(),
-                            tccp.getRowLimit(), tccp.getNature());
+                            tccp.getRetryNb(), tccp.getRetryPeriod(), tccp.getDatabase(), tccp.getValue1(), tccp.getValue2(), tccp.getLength(), tccp.getLength(),
+                            tccp.getRowLimit(), tccp.getNature(), "", "", "", "", "", "N");
                     tcExeData.setTestCaseCountryProperties(tccp);
                     propertyService.calculateProperty(tcExeData, tCExecution, testCaseStepActionExecution, tccp, true);
                     // Property message goes to Action message.
@@ -1242,7 +1291,7 @@ public class ActionService implements IActionService {
                                 now = new Date().getTime();
                                 TestCaseExecutionData tcedS = factoryTestCaseExecutionData.create(tcExeData.getId(), tcExeData.getProperty(), (i + 1),
                                         tcExeData.getDescription(), tcExeData.getDataLibRawData().get(i).get(""), tcExeData.getType(), "", "",
-                                        tcExeData.getRC(), "", now, now, now, now, null, 0, 0, "", "", "", 0, 0, "");
+                                        tcExeData.getRC(), "", now, now, now, now, null, 0, 0, "", "", "", "", "", 0, "", "", "", "", "", "", "N");
                                 testCaseExecutionDataService.convert(testCaseExecutionDataService.save(tcedS));
                             }
                         }

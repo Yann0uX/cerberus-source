@@ -40,6 +40,11 @@ function initPage() {
     var configurations = new TableConfigurationsServerSide("robotsTable", "ReadRobot", "contentTable", aoColumnsFunc("robotsTable"), [1, 'asc']);
 
     createDataTableWithPermissions(configurations, renderOptionsForRobot, "#robotList", undefined, true);
+    
+    $('[data-toggle="popover"]').popover({
+        'placement': 'auto',
+        'container': 'body'}
+    );
 }
 
 function displayPageLabel() {
@@ -118,6 +123,7 @@ function aoColumnsFunc(tableId) {
     var aoColumns = [
         {"data": null,
             "title": doc.getDocLabel("page_global", "columnAction"),
+            "sWidth": "90px",
             "bSortable": false,
             "bSearchable": false,
             "mRender": function (data, type, obj) {
@@ -146,33 +152,47 @@ function aoColumnsFunc(tableId) {
         },
         {"data": "robot",
             "sName": "robot",
+            "sWidth": "50px",
             "title": doc.getDocOnline("robot", "robot")},
         {"data": "host",
             "sName": "host",
+            "sWidth": "50px",
             "title": doc.getDocOnline("robot", "host")},
         {"data": "port",
             "sName": "port",
+            "sWidth": "50px",
             "title": doc.getDocOnline("robot", "port")},
         {"data": "platform",
             "sName": "platform",
+            "sWidth": "50px",
             "title": doc.getDocOnline("robot", "platform")},
         {"data": "browser",
             "sName": "browser",
+            "sWidth": "50px",
             "title": doc.getDocOnline("robot", "browser")},
         {"data": "version",
             "sName": "version",
+            "sWidth": "50px",
             "title": doc.getDocOnline("robot", "version")},
         {"data": "active",
             "sName": "active",
+            "sWidth": "30px",
             "title": doc.getDocOnline("robot", "active")},
         {"data": "userAgent",
             "sName": "userAgent",
+            "sWidth": "50px",
             "title": doc.getDocOnline("robot", "useragent")},
         {"data": "screenSize",
             "sName": "screenSize",
+            "sWidth": "50px",
             "title": doc.getDocOnline("robot", "screensize")},
+        {"data": "robotDecli",
+            "sName": "robotDecli",
+            "sWidth": "50px",
+            "title": doc.getDocOnline("robot", "robotdecli")},
         {"data": "description",
             "sName": "description",
+            "sWidth": "80px",
             "title": doc.getDocOnline("robot", "description")}
     ];
     return aoColumns;

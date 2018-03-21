@@ -53,7 +53,7 @@ public class TestCaseExecutionDataService implements ITestCaseExecutionDataServi
     ITestCaseExecutionFileService testCaseExecutionFileService;
 
     private static final Logger LOG = LogManager.getLogger(TestCaseStepActionControlExecutionService.class);
-    
+
     @Override
     public AnswerItem readByKey(long id, String property, int index) {
         return testCaseExecutionDataDao.readByKey(id, property, index);
@@ -65,13 +65,18 @@ public class TestCaseExecutionDataService implements ITestCaseExecutionDataServi
     }
 
     @Override
+    public AnswerItem<TestCaseExecutionData> readLastCacheEntry(String system, String environment, String country, String property, int cacheExpire) {
+        return testCaseExecutionDataDao.readLastCacheEntry(system, environment, country, property, cacheExpire);
+    }
+
+    @Override
     public AnswerList<TestCaseExecutionData> readById(long id) {
         return testCaseExecutionDataDao.readByIdByCriteria(id, 0, 0, "exd.id", "asc", null, null);
     }
 
     @Override
     public AnswerList<TestCaseExecutionData> readByIdWithDependency(long id) {
-        AnswerList data = this.readByIdByCriteria(id, 0, 0, "exd.id", "asc", null, null);
+        AnswerList data = this.readByIdByCriteria(id, 0, 0, "exd.property", "asc", null, null);
         AnswerList response = null;
         List<TestCaseExecutionData> tcsaceList = new ArrayList();
         for (Object mydata : data.getDataList()) {

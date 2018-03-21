@@ -56,6 +56,7 @@ function resetTooltip() {
     $(".tooltip.fade").remove();
 }
 
+
 /**
  * Function that allow to filter column on specific value
  * @param {type} tableId >Id of the datatable
@@ -112,6 +113,7 @@ function generateFiltersOnMultipleColumns(tableId, searchColumns) {
         }
 
     }
+    
     return (filterConfiguration);
 }
 
@@ -137,7 +139,7 @@ function applyFiltersOnMultipleColumns(tableId, searchColumns, fromURL) {
             searchArray.push(searchObject);
         }
     }
-
+    
     // Apply filter on table
     var oTable = $('#' + tableId).dataTable();
     resetFilters(oTable);
@@ -148,7 +150,6 @@ function applyFiltersOnMultipleColumns(tableId, searchColumns, fromURL) {
                 oTable.api().column(iCol).search(searchArray[sCol].values);
             }
         }
-
     }
     oTable.fnDraw();
 }
@@ -184,8 +185,8 @@ function clearIndividualFilterForClientSide(tableId, columnNumber, clearGlobalSe
  * @returns {undefined}
  */
 var columnSearchValuesForClientSide = [];//global var that take the role of the ajax function
-function displayColumnSearchForClientSideTable(tableData, tableId, oSettings) {
-    privateDisplayColumnSearch(tableId, null, oSettings,true); // table data not use ?
+function displayColumnSearchForClientSideTable(tableData, contentUrl, oSettings) {
+    privateDisplayColumnSearch(tableData, contentUrl, oSettings,true); // table data not use ?
 }
 
 /**
@@ -254,20 +255,30 @@ function privateDisplayColumnSearch(tableId, contentUrl, oSettings, clientSide) 
     $("#" + tableId + '_wrapper .dataTables_scrollHeadInner table thead tr th').each(function () {
         $("#" + tableId + "_wrapper #filterHeader").append("<th name='filterColumnHeader'></th>");
     });
+    
+    var allcolumnSearchValues = new Object();
 
     //Iterate on all columns
-    $.each(orderedColumns, function (index, value) {
-
-        var columnSearchValues;
+    $.each(orderedColumns, function (index, value) {  	
+    	var columnSearchValues;
         var json_obj = JSON.stringify(table.ajax.params());
-
+        
         if(clientSide) { // TODO verify if it's normal it's different for clientSide
             columnSearchValues = columnSearchValuesForClientSide[index]; //Get the value from storage (To display specific string if already filtered)
         } else {
             columnSearchValues = JSON.parse(json_obj)["sSearch_" + index].split(',');
         }
-
-
+        
+        if(columnSearchValues != undefined){
+        	if(columnSearchValues[0] === ""){
+        		allcolumnSearchValues[value] = undefined
+        	}else{
+        		allcolumnSearchValues[value] = columnSearchValues
+        	}
+        }else{
+        	allcolumnSearchValues[value] = columnSearchValues
+        }
+        
         //Get the column names (for title display)
         var title = value;
         //Build the specific tooltip for filtered columns and the tooltip for not filtered columns
@@ -280,6 +291,7 @@ function privateDisplayColumnSearch(tableId, contentUrl, oSettings, clientSide) 
             //Build the Alert Message for filtered column information
             var filteredColumnInformation = new Array();
             var filteredTooltip = '<div>';
+            
             $(columnSearchValues).each(function (i) {
                 valueFiltered[i] = $('<p>' + columnSearchValues[i] + '</p>').text();
                 filteredTooltip += "<br><span>" + $('<p>' + columnSearchValues[i] + '</p>').text() + "</span> ";
@@ -291,7 +303,11 @@ function privateDisplayColumnSearch(tableId, contentUrl, oSettings, clientSide) 
             filteredInformation.push("<div class=\"col-sm-2 alert alert-warning\" style=\"margin-bottom:0px;\">");
             filteredInformation.push("<span id='clearFilterButton" + index + "' onclick='"+fctClearIndividualFilter+"(\"" + tableId + "\", \"" + index + "\", false)' data-toggle='tooltip' title='Clear filter " + title + "' class='pull-right glyphicon glyphicon-remove-sign'  style='cursor:pointer;'></span>");
             filteredInformation.push("<div style=\"margin-bottom:0px;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;\">");
-            filteredInformation.push("<strong>" + title + "</strong> IN <br>");
+            if(oSettings.aoColumns[index].like){
+            	filteredInformation.push("<strong>" + title + "</strong> LIKE <br>");
+            }else{
+            	filteredInformation.push("<strong>" + title + "</strong> IN <br>");
+            }
             filteredInformation.push("<div data-toggle=\"tooltip\" data-html=\"true\" title=\"" + filteredTooltip + "\" id=\"alertFilteredValues" + index + "\">[ ");
             filteredInformation.push(filteredColumnInformation);
             filteredInformation.push(" ]</div></div></div>");
@@ -313,86 +329,109 @@ function privateDisplayColumnSearch(tableId, contentUrl, oSettings, clientSide) 
             } else {//For the navigation filter list
                 oSettings.aoColumns[index].bSearchable = false;
             }
-
+            
             //Get the header cell to display the filter
             var tableCell = $($("#" + tableId + '_wrapper [name="filterColumnHeader"]')[columnVisibleIndex])[0];
-
+            
             $(tableCell).removeClass().addClass("filterHeader");
             if (clientSide && oSettings.aoColumns[index].bSearchable || !clientSide && table.ajax.params()["bSearchable_" + index]) { // TODO verify why it's different
                 //Then init the editable object
-                var select =
-                    $('<span></span>')
-                    .appendTo($(tableCell).attr('data-id', 'filter_' + columnVisibleIndex)
-                        .attr('data-order', index))
-                    .editable({
-                        type: 'checklist',
-                        title: title,
-                        source: function () {
-                            if(clientSide) {
-                                return data;
-                            }
+        		var select =
+        	        $('<span></span>')
+        	        .appendTo($(tableCell).attr('data-id', 'filter_' + columnVisibleIndex)
+        	            .attr('data-order', index))
+        	        .editable({
+        	            type: 'checklist',
+        	            title: title,
+        	            source: function () {
+        	                if(clientSide) {
+        	                    return data;
+        	                }else if (oSettings.aoColumns[index].like){
+        	                	return [];
+        	                }
 
-                            //Check if URL already contains parameters
-                            var urlSeparator = contentUrl.indexOf("?") > -1 ? "&" : "?";
-                            var url = './' + contentUrl + urlSeparator + 'columnName=' + title;
-                            var result;
-                            $.ajax({
-                                type: 'GET',
-                                async: false,
-                                url: url,
-                                success: function (responseObject) {
-                                    if (responseObject.distinctValues !== undefined) {
-                                        result = responseObject.distinctValues;
-                                    } else {
-                                        //TODO : To remove when all servlet have method to find distinct values
-                                        //if undefined, display the distinct value displayed in the table
-                                        result = data;
-                                    }
-                                },
-                                error: function () {
-                                    //TODO : To remove when all servlet have method to find distinct values
-                                    //if error, display the distinct value displayed in the table
-                                    result = data;
-                                }
-                            });
-                            return result;
-                        }
-                        ,
-                        onblur: 'cancel',
-                        mode: 'popup',
-                        placement: 'bottom',
-                        emptytext: display,
-                        send: 'always',
-                        validate: function (value) {
-                            if (value === null || value === '' || value.length === 0) {
-                                $("#" + tableId).dataTable().fnFilter('', Math.max($("#" + tableId + " [name='filterColumnHeader']").index($(this).parent()), index));
-                            }
-                        },
-                        display: function (value, sourceData) {
-                            var val;
-                            $(value).each(function (i) {
-                                val = "<input placeholder='Search...' autocomplete='off' id='inputsearch_"+index+"' class='col-sm-8 form-control input-sm' name='searchField' />";
-                            });
-                            $(this).html(val);
-                        },
-                        success: function (response, newValue) {
-                            if(clientSide) {
-                                columnSearchValuesForClientSide[index] = newValue;
-                                var filterForFnFilter = "";//create the filter list that will be used by fnFilter
-                                for (var i in newValue) {
-                                    filterForFnFilter += newValue[i] + "|";
-                                }
-                                filterForFnFilter = filterForFnFilter.slice(0, -1);
-                                $("#" + tableId).dataTable().fnFilter("^" + filterForFnFilter + "$", index, true);
-                            } else {
-                                $("#" + tableId).dataTable().fnFilter(newValue, Math.max($("#" + tableId + " [name='filterColumnHeader']").index($(this).parent()), index));
-                            }
-                        }
-                    });
+        	                //Check if URL already contains parameters
+        	                var urlSeparator = contentUrl.indexOf("?") > -1 ? "&" : "?";
+        	                var url = './' + contentUrl + urlSeparator + 'columnName=' + title;
+        	                var result;
+        	                
+        	                var params = table.ajax.params()  
+        	                
+							var like = ""
+								
+							$.each(oSettings.aoColumns, function(index,value){
+								if(oSettings.aoColumns[index].like){
+									like += oSettings.aoColumns[index].sName + ","
+								}
+							})
+							
+							like = like.substring(0, like.length-1);
+        	                params["sLike"] = like
+        	                
+        	                $.ajax({
+        	                    type: 'POST',
+        	                    async: false,
+        	                    url: url,
+        	                    data: params,
+        	                    success: function (responseObject) {
+        	                        if (responseObject.distinctValues !== undefined) {
+        	                            result = responseObject.distinctValues;
+        	                        } else {
+        	                            //TODO : To remove when all servlet have method to find distinct values
+        	                            //if undefined, display the distinct value displayed in the table
+        	                            result = data;
+        	                        }
+        	                        
+        	                    },
+        	                    error: function () {
+        	                        //TODO : To remove when all servlet have method to find distinct values
+        	                       //if error, display the distinct value displayed in the table
+        	                       result = data;
+        	                   }
+        	                });
+        	                return result;
+        	            }
+        	            ,
+        	          onblur: 'cancel',
+        	            mode: 'popup',
+        	            placement: 'bottom',
+        	            emptytext: display,
+        	           send: 'always',
+        	           validate: function (value) {
+        	               if (value === null || value === '' || value.length === 0) {
+        	                    $("#" + tableId).dataTable().fnFilter('', Math.max($("#" + tableId + " [name='filterColumnHeader']").index($(this).parent()), index));
+        	                }
+        	            },
+        	           display: function (value, sourceData) {
+
+        	         },
+        	          success: function (response, newValue) {
+
+        	               if(clientSide) {
+        	                   columnSearchValuesForClientSide[index] = newValue;
+        	                   var filterForFnFilter = "";//create the filter list that will be used by fnFilter
+        	                   for (var i in newValue) {
+        	                       filterForFnFilter += newValue[i] + "|";
+        	                  }
+        	                   filterForFnFilter = filterForFnFilter.slice(0, -1);
+        	                   $("#" + tableId).dataTable().fnFilter("(" + filterForFnFilter + ")", index, true);
+        	                } else {
+        	                    $("#" + tableId).dataTable().fnFilter(newValue, Math.max($("#" + tableId + " [name='filterColumnHeader']").index($(this).parent()), index));
+        	               }
+        	               
+        	        }
+        	    });
+        		
+        		if(!oSettings.aoColumns[index].like || isEmpty(oSettings.aoColumns[index])){
+        			$(select).click(function(e){
+            			$(this).editable("setValue",allcolumnSearchValues[value],false)
+            		})
+        		}    		
             }
             columnVisibleIndex++;
         }
     }); // end of loop on columns
+
 
     //Display the filtered alert message only if search is activated in at least 1 column
     //filteredInformation.pop();
@@ -404,7 +443,7 @@ function privateDisplayColumnSearch(tableId, contentUrl, oSettings, clientSide) 
             filteredStringToDisplay += filteredInformation[l];
         }
         $("#" + tableId + "_wrapper #activatedFilters").html(filteredStringToDisplay);
-        $("#" + tableId + "_wrapper #clearFilterButton").click(function () {
+        $("#" + tableId + "_wrapper #clearFilterButton").off("click").click(function () {
             if(clientSide) {
                 columnSearchValuesForClientSide = [];//reset the search value when the user click on the clear all buton
             }
@@ -427,10 +466,8 @@ function privateDisplayColumnSearch(tableId, contentUrl, oSettings, clientSide) 
             $(".dt-button.buttons-columnVisibility").each(function (index, value) {
                 $(value).find("a").text( oSettings.aoColumns[index].nTh.innerText);
             });
-            
            
             firstclickOnShowHide=false;
-
             // Important! Recharge screen with a double click on button to recalculate position of the box
             $("#" + tableId + "_wrapper #showHideColumnsButton").click();
 
@@ -444,18 +481,20 @@ function privateDisplayColumnSearch(tableId, contentUrl, oSettings, clientSide) 
     //To put into a function
     //When clicking on the edit filter links
     $("#" + tableId + "_wrapper .editable").click(function () {
+    	
+    	var currentValue = $(this).next().find(".popover-title").text() != "" ? $(this).next().find(".popover-title").text() : "undefined"
         //Clear custom fields to avoid duplication
         $("#" + tableId + "_wrapper [data-type='custom']").remove();
 
-        //Check the value already selected
-        //Check all if no specific value selected
-        if ($(this).find("span").size() < 2) {
-            $("#" + tableId + '_wrapper .editable-checklist').find("input").prop('checked', true);
-        } else {
-            $(this).find("span").each(function () {
-                $("#" + tableId + '_wrapper .editable-checklist').find("input[value='" + $(this).text() + "']").prop('checked', true);
-            });
-        }
+    	if(allcolumnSearchValues[currentValue] === undefined){
+        	if ($(this).find("span").size() < 2) {
+        		$("#" + tableId + '_wrapper .editable-checklist').find("input").prop('checked', true);
+        	} else {
+        		$(this).find("span").each(function () {
+        			$("#" + tableId + '_wrapper .editable-checklist').find("input[value='" + $(this).text() + "']").prop('checked', true);
+   	         	});
+        	}
+    	}
 
         //Add an input field to search specific checkbox (search ignore case)
 
@@ -464,23 +503,34 @@ function privateDisplayColumnSearch(tableId, contentUrl, oSettings, clientSide) 
                 return (elem.textContent || elem.innerText || "").toLowerCase().indexOf((match[3] || "").toLowerCase()) >= 0;
             }
         });
-
+        
         searchInput = $(this.parentNode).find("input[name='searchField']");
-
+        
         searchInput.on('keyup', function () {
-             var allElement = $('#' + tableId + '_wrapper .editable-checklist > div')
-             var elementsTocheck = $('#' + tableId + '_wrapper .editable-checklist > div:containsIN(' + $(this).val() + ')')
-             //uncheck and hive all element
-             allElement.find("[type='checkbox']").prop('checked', false);
-             allElement.hide();
-             //check and show element that need to be check
-             elementsTocheck.find("[type='checkbox']").prop('checked', true);
-             elementsTocheck.show();
-         });
-
+        	var currentColumn = oSettings.aoColumns[$(this).attr('id').split('_')[1]] 
+        	if(currentColumn.like == null || !currentColumn.like){
+        		var allElement = $('#' + tableId + '_wrapper .editable-checklist > div')
+                var elementsTocheck = $('#' + tableId + '_wrapper .editable-checklist > div:containsIN(' + $(this).val() + ')')
+                //uncheck and hive all element
+                allElement.find("[type='checkbox']").prop('checked', false);
+                allElement.hide();
+                //check and show element that need to be check
+                
+                if(allcolumnSearchValues[currentValue] != undefined){
+                	$.each(allcolumnSearchValues[currentValue], function(index,value){
+                		elementsTocheck.find("input[value='"+value+"']").prop('checked', true);
+                    })
+                }else{
+                	elementsTocheck.find("[type='checkbox']").prop('checked', true);
+                }
+                elementsTocheck.show();
+        	}
+        	
+        });
+        
         searchInput.off('keydown'); // desactive old keydown handler
         searchInput.off('click');
-
+        
         searchInput.keydown(function (e) {
             var keyCode = e.keyCode || e.which;
 
@@ -496,32 +546,48 @@ function privateDisplayColumnSearch(tableId, contentUrl, oSettings, clientSide) 
                 return false;
             }
         });
-
-        searchInput.click(function () {
+        
+        $(searchInput).parent().parent().find(".editable-submit").click(function(e){
+        	var currentColumn = oSettings.aoColumns[$(searchInput).attr('id').split('_')[1]] 
+        	if(currentColumn.like != null && currentColumn.like){
+        		var value = [$(searchInput).val()]
+        		$(searchInput).parent().editable("submit", value)
+        	}
+        });
+                
+        searchInput.click(function (e) {
             if($(this).parent().parent().find(".popover.editable-popup").length>0) {
                 return false;
             }
         });
 
         searchInput.focus();
+        
+        if($(searchInput).length){
+        	var currentColumn = oSettings.aoColumns[$(searchInput).attr('id').split('_')[1]] 
+            if(currentColumn.like == null || !currentColumn.like){
+            	//Add selectAll/unSelectAll button
+            	$("#" + tableId + "_wrapper .popover-title").after(
+                    $('<button>').attr('class', 'glyphicon glyphicon-check')
+                        .attr('type', 'button')
+                        .attr('title', 'select all').attr('name', 'selectAll')
+                        .attr('data-type', 'custom').on('click', function () {
+                        $(this).parent().parent().find("[type='checkbox']:visible").prop('checked', true);
+                    }));
+            	$("#" + tableId + "_wrapper .popover-title").after(
+            		$('<button>').attr('class', 'glyphicon glyphicon-unchecked')
+                        .attr('type', 'button')
+                        .attr('title', 'unselect all').attr('name', 'unSelectAll')
+                        .attr('data-type', 'custom').on('click', function () {
+                        $(this).parent().parent().find("[type='checkbox']:visible").prop('checked', false);
+                    }));
+            }
+            
+        }
 
-        //Add selectAll/unSelectAll button
-        $("#" + tableId + "_wrapper .popover-title").after(
-            $('<button>').attr('class', 'glyphicon glyphicon-check')
-                .attr('type', 'button')
-                .attr('title', 'select all').attr('name', 'selectAll')
-                .attr('data-type', 'custom').on('click', function () {
-                $(this).parent().parent().find("[type='checkbox']:visible").prop('checked', true);
-            }));
-        $("#" + tableId + "_wrapper .popover-title").after(
-            $('<button>').attr('class', 'glyphicon glyphicon-unchecked')
-                .attr('type', 'button')
-                .attr('title', 'unselect all').attr('name', 'unSelectAll')
-                .attr('data-type', 'custom').on('click', function () {
-                $(this).parent().parent().find("[type='checkbox']:visible").prop('checked', false);
-            }));
+        
     });
-
+    
     if(focusOnNextSearchInputBool) {
         focusOnNextSearchInput(lastSearchInput);
     }

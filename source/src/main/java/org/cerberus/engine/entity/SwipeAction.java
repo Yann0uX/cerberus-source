@@ -28,6 +28,7 @@ import java.awt.geom.Line2D;
  *
  * @author Aurelien Bourdon.
  */
+
 public class SwipeAction {
 
     /**

@@ -21,9 +21,12 @@ package org.cerberus.crud.service.impl;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.cerberus.crud.dao.ITestCaseExecutionDAO;
@@ -77,7 +80,6 @@ public class TestCaseExecutionService implements ITestCaseExecutionService {
     @Autowired
     ITestCaseExecutionQueueService testCaseExecutionInQueueService;
 
-
     private static final Logger LOG = LogManager.getLogger(TestCaseExecutionService.class);
 
     @Override
@@ -89,7 +91,7 @@ public class TestCaseExecutionService implements ITestCaseExecutionService {
     public void updateTCExecution(TestCaseExecution tCExecution) throws CerberusException {
         testCaseExecutionDao.updateTCExecution(tCExecution);
     }
-    
+
     @Override
     public AnswerItem readLastByCriteria(String application) {
         return testCaseExecutionDao.readLastByCriteria(application);
@@ -143,11 +145,6 @@ public class TestCaseExecutionService implements ITestCaseExecutionService {
     }
 
     @Override
-    public List<TestCaseExecution> findExecutionsByCampaignNameAndTag(String campaign, String tag) throws CerberusException {
-        return testCaseExecutionDao.findExecutionsByCampaignNameAndTag(campaign, tag);
-    }
-
-    @Override
     public TestCaseExecution findLastTCExecutionInGroup(String test, String testCase, String environment, String country,
             String build, String revision, String browser, String browserVersion,
             String ip, String port, String tag) {
@@ -180,8 +177,8 @@ public class TestCaseExecutionService implements ITestCaseExecutionService {
     }
 
     @Override
-    public AnswerList readByCriteria(int start, int amount, String sort, String searchTerm, Map<String, List<String>> individualSearch) throws CerberusException {
-        return testCaseExecutionDao.readByCriteria(start, amount, sort, searchTerm, individualSearch);
+    public AnswerList readByCriteria(int start, int amount, String sort, String searchTerm, Map<String, List<String>> individualSearch, List<String> individualLike) throws CerberusException {
+        return testCaseExecutionDao.readByCriteria(start, amount, sort, searchTerm, individualSearch, individualLike);
     }
 
     @Override
@@ -333,22 +330,24 @@ public class TestCaseExecutionService implements ITestCaseExecutionService {
     private List<TestCaseExecution> hashExecution(List<TestCaseExecution> testCaseExecutions, List<TestCaseExecutionQueue> testCaseExecutionsInQueue) throws ParseException {
         LinkedHashMap<String, TestCaseExecution> testCaseExecutionsList = new LinkedHashMap();
         for (TestCaseExecution testCaseExecution : testCaseExecutions) {
-            String key = testCaseExecution.getBrowser() + "_"
+            String key = testCaseExecution.getRobotDecli()+ "_"
                     + testCaseExecution.getCountry() + "_"
                     + testCaseExecution.getEnvironment() + "_"
                     + testCaseExecution.getTest() + "_"
                     + testCaseExecution.getTestCase();
+            if ((testCaseExecutionsList.containsKey(key))) {
+                testCaseExecution.setNbExecutions(testCaseExecutionsList.get(key).getNbExecutions() + 1);
+            }
             testCaseExecutionsList.put(key, testCaseExecution);
         }
         for (TestCaseExecutionQueue testCaseExecutionInQueue : testCaseExecutionsInQueue) {
             TestCaseExecution testCaseExecution = testCaseExecutionInQueueService.convertToTestCaseExecution(testCaseExecutionInQueue);
-            String key = testCaseExecution.getBrowser() + "_"
+            String key = testCaseExecution.getRobotDecli()+ "_"
                     + testCaseExecution.getCountry() + "_"
                     + testCaseExecution.getEnvironment() + "_"
                     + testCaseExecution.getTest() + "_"
                     + testCaseExecution.getTestCase();
-            if ((testCaseExecutionsList.containsKey(key)
-                    && testCaseExecutionsList.get(key).getStart() < testCaseExecutionInQueue.getRequestDate().getTime())
+            if ((testCaseExecutionsList.containsKey(key) && testCaseExecutionsList.get(key).getStart() < testCaseExecutionInQueue.getRequestDate().getTime())
                     || !testCaseExecutionsList.containsKey(key)) {
                 testCaseExecutionsList.put(key, testCaseExecution);
             }

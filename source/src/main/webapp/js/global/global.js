@@ -23,19 +23,34 @@
 //$.getScript("js/jquery.blockUI.js");
 
 
-var show = false;
+var showBurger = false;
+var showSettings = false;
 
 (function () {
     $("#burger").unbind("click").click(function () {
-        if (show === false) {
+        if (showBurger === false) {
             $("#side-menu li").show();
-            show = true;
+            showBurger = true;
         } else {
             $("#side-menu li:not(.MainItem)").hide();
-            show = false;
+            showBurger = false;
         }
 
     })
+
+    $("#burger-setting").unbind("click").click(function () {
+        if (showSettings === false) {
+            $(".nav.navbar-top-links.navbar-right").show();
+            $(".navbar-header").show()
+            showSettings = true;
+        } else {
+            $(".nav.navbar-top-links.navbar-right").hide();
+            $(".navbar-header").hide()
+            showSettings = false;
+        }
+
+    })
+
 })()
 
 function handleErrorAjaxAfterTimeout(result) {
@@ -82,7 +97,7 @@ function getSubDataLabel(type) {
  * @param {String} asyn [optional] Do a async ajax request. Default: true
  * @returns {void}
  */
-function displayInvariantList(selectName, idName, forceReload, defaultValue, addValue1, asyn) {
+function displayInvariantList(selectName, idName, forceReload, defaultValue, addValue1, asyn, funcAfterLoad) {
     // Adding the specific value when defined.
     if (addValue1 !== undefined) {
         $("[name='" + selectName + "']").append($('<option></option>').text(addValue1).val(addValue1));
@@ -114,12 +129,17 @@ function displayInvariantList(selectName, idName, forceReload, defaultValue, add
                 sessionStorage.setItem(cacheEntryName, JSON.stringify(data));
                 for (var index = 0; index < list.length; index++) {
                     var item = list[index].value;
-                    var desc = list[index].value + " - " + list[index].description;
+                    var desc = list[index].value;
+                    if (!isEmpty(list[index].description))
+                        desc += " - " + list[index].description;
 
                     $("[name='" + selectName + "']").append($('<option></option>').text(desc).val(item));
                 }
                 if (defaultValue !== undefined) {
                     $("[name='" + selectName + "']").val(defaultValue);
+                }
+                if (funcAfterLoad !== undefined) {
+                    funcAfterLoad();
                 }
             }
         });
@@ -132,6 +152,10 @@ function displayInvariantList(selectName, idName, forceReload, defaultValue, add
         }
         if (defaultValue !== undefined) {
             $("[name='" + selectName + "']").val(defaultValue);
+        }
+        if (funcAfterLoad !== undefined) {
+            console.info("toto");
+            funcAfterLoad();
         }
     }
 }
@@ -248,52 +272,44 @@ function displayAppServiceList(selectName, defaultValue) {
     });
 }
 
-function displayDataLibList(selectName, defaultValue, name) {
+function displayDataLibList(selectName, defaultValue, data) {
 
-    return new Promise((resolve, reject) => {
-        $("#" + selectName).parent().find("select").find('option').remove();
-        $.when($.getJSON("ReadTestDataLib?name=" + name + "&limit=15&like=N")).then(function (data) {
+    $("#" + selectName).parent().find("select").find('option').remove();
 
-            for (var option in data.contentTable) {
-                let system = "";
-                let environment = "";
-                let country = "";
-                let value = "";
-                let context = "";
-                if (!isEmpty(data.contentTable[option].system)) {
-                    system = data.contentTable[option].system + " - "
-                }
-                if (!isEmpty(data.contentTable[option].environment)) {
-                    environment = data.contentTable[option].environment + " - "
-                }
-                if (!isEmpty(data.contentTable[option].country)) {
-                    country = data.contentTable[option].country + " - "
-                }
+    for (var option in data.contentTable) {
+        let system = "";
+        let environment = "";
+        let country = "";
+        let value = "";
+        let context = "";
+        if (!isEmpty(data.contentTable[option].system)) {
+            system = data.contentTable[option].system + " - "
+        }
+        if (!isEmpty(data.contentTable[option].environment)) {
+            environment = data.contentTable[option].environment + " - "
+        }
+        if (!isEmpty(data.contentTable[option].country)) {
+            country = data.contentTable[option].country + " - "
+        }
 
-                if (data.contentTable[option].type === "INTERNAL") {
-                    if (!isEmpty(data.contentTable[option].subDataValue)) {
-                        value = data.contentTable[option].subDataValue + " - "
-                    }
-                }
-
-                if (!isEmpty(system) || !isEmpty(environment) || !isEmpty(country) || !isEmpty(value)) {
-                    context = system + environment + country + value
-                    context = context.substr(0, context.length - 3)
-                    context = " [" + context + "]"
-                }
-
-                $("#" + selectName).parent().find("select").append($('<option></option>').text(data.contentTable[option].name + context).val(data.contentTable[option].testDataLibID));
+        if (data.contentTable[option].type === "INTERNAL") {
+            if (!isEmpty(data.contentTable[option].subDataValue)) {
+                value = data.contentTable[option].subDataValue + " - "
             }
+        }
 
-            if (defaultValue != undefined) {
-                $("#" + selectName).parent().find("select").val(defaultValue);
-            }
-            resolve(data);
+        if (!isEmpty(system) || !isEmpty(environment) || !isEmpty(country) || !isEmpty(value)) {
+            context = system + environment + country + value
+            context = context.substr(0, context.length - 3)
+            context = " [" + context + "]"
+        }
 
-        })
-    })
+        $("#" + selectName).parent().find("select").append($('<option></option>').text(data.contentTable[option].name + context).val(data.contentTable[option].testDataLibID));
+    }
 
-
+    if (defaultValue != undefined) {
+        $("#" + selectName).parent().find("select").val(defaultValue);
+    }
 }
 
 
@@ -526,8 +542,9 @@ function getInvariantListN(list, handleData) {
  * @param {String} idName of the invariant to load (ex : COUNTRY)
  * @param {boolean} forceReload true if we want to force the reload on cache from the server
  * @param {boolean} notAsync true if we dont want to have Async ajax
+ * @param {boolean} addValue Value that can be added at the beginning of the combo.
  */
-function getSelectInvariant(idName, forceReload, notAsync) {
+function getSelectInvariant(idName, forceReload, notAsync, addValue) {
     var cacheEntryName = idName + "INVARIANT";
     if (forceReload) {
         sessionStorage.removeItem(cacheEntryName);
@@ -538,6 +555,9 @@ function getSelectInvariant(idName, forceReload, notAsync) {
     }
     var list = JSON.parse(sessionStorage.getItem(cacheEntryName));
     var select = $("<select></select>").addClass("form-control input-sm");
+    if (addValue !== undefined) {
+        select.append($("<option></option>").text(addValue).val(addValue));
+    }
 
     if (list === null) {
         $.ajax({
@@ -566,7 +586,7 @@ function getSelectInvariant(idName, forceReload, notAsync) {
 }
 
 /**
- * This method will return the combo list of TestBattery.
+ * This method will return the combo list of Robot.
  * It will load the values from the sessionStorage cache of the browser
  * when available, if not available, it will get it from the server and save
  * it on local cache.
@@ -574,8 +594,8 @@ function getSelectInvariant(idName, forceReload, notAsync) {
  * @param {boolean} forceReload true if we want to force the reload on cache from the server
  * @param {boolean} notAsync true if we dont want to have Async ajax
  */
-function getSelectTestBattery(forceReload, notAsync) {
-    var cacheEntryName = "TESTBATTERY";
+function getSelectRobot(forceReload, notAsync) {
+    var cacheEntryName = "ROBOTLIST";
     if (forceReload) {
         sessionStorage.removeItem(cacheEntryName);
     }
@@ -588,27 +608,35 @@ function getSelectTestBattery(forceReload, notAsync) {
 
     if (list === null) {
         $.ajax({
-            url: "ReadTestBattery",
+            url: "ReadRobot",
             async: async,
             success: function (data) {
                 list = data.contentTable;
-                sessionStorage.setItem(cacheEntryName, JSON.stringify(data.contentTable));
+//                console.info(list);
+//                console.info(list.length);
+                sessionStorage.setItem(cacheEntryName, JSON.stringify(data));
                 for (var index = 0; index < list.length; index++) {
-                    var item = list[index].testbattery + " - " + list[index].description;
-                    select.append($("<option></option>").text(item).val(list[index].testbattery));
+//                    console.info(list[index].robot);
+                    var item = list[index].robot;
+                    var text = list[index].robot + " [" + list[index].host + "]";
+
+                    select.append($("<option></option>").text(text).val(item));
+//                    console.info(item + " - " + text)
                 }
             }
         });
     } else {
         for (var index = 0; index < list.length; index++) {
-            var item = list[index].testbattery + " - " + list[index].description;
+            var item = list[index].value;
+            var text = list[index].robot + " [" + list[index].host + "]";
 
-            select.append($("<option></option>").text(item).val(list[index].testbattery));
+            select.append($("<option></option>").text(text).val(item));
         }
     }
 
     return select;
 }
+
 
 /**
  * This method will return the combo list of Label.
@@ -616,6 +644,7 @@ function getSelectTestBattery(forceReload, notAsync) {
  * when available, if not available, it will get it from the server and save
  * it on local cache.
  * The forceReload boolean can force the refresh of the list from the server.
+ * @param {String} system filter label from system
  * @param {boolean} forceReload true if we want to force the reload on cache from the server
  * @param {boolean} notAsync true if we dont want to have Async ajax
  */
@@ -657,6 +686,7 @@ function getSelectLabel(system, forceReload, notAsync) {
 }
 
 function getSelectApplication(system, forceReload) {
+    system = ""
     var cacheEntryName = system + "INVARIANT";
     if (forceReload) {
         sessionStorage.removeItem(cacheEntryName);
@@ -686,6 +716,27 @@ function getSelectApplication(system, forceReload) {
             select.append($("<option></option>").text(item).val(item));
         }
     }
+
+    return select;
+}
+
+function getSelectApplicationWithoutSystem() {
+
+    var list = []
+
+    var select = $("<select></select>").addClass("form-control input-sm");
+
+    $.ajax({
+        url: "ReadApplication",
+        async: false,
+        success: function (data) {
+            list = data.contentTable;
+            for (var index = 0; index < list.length; index++) {
+                var item = list[index].application;
+                select.append($("<option></option>").text(item).val(item));
+            }
+        }
+    });
 
     return select;
 }
@@ -819,9 +870,11 @@ function clearResponseMessageMainPage() {
  * Method that shows a message
  * @param {type} obj - object containing the message and the message type
  * @param {type} dialog - dialog where the message should be displayed; if null then the message
+ * @param {boolean} silentMode - if true, message is not displayed if OK (default is false).
+ * @param {integer} waitinMs - delay that the modal will stay visible in ms (default is automaticly calculated).
  * is displayed in the main page.
  */
-function showMessage(obj, dialog) {
+function showMessage(obj, dialog, silentMode, waitinMs) {
     var code = getAlertType(obj.messageType);
 
     if (code !== "success" && dialog !== undefined && dialog !== null) {
@@ -834,7 +887,7 @@ function showMessage(obj, dialog) {
         elementAlert.fadeIn();
     } else {
         //shows the message in the main page
-        showMessageMainPage(code, obj.message, false);
+        showMessageMainPage(code, obj.message, silentMode, waitinMs);
     }
 
     /*if(dialog !== null && obj.messageType==="success"){
@@ -844,7 +897,7 @@ function showMessage(obj, dialog) {
 
 /**
  * Method that allows us to append a message in an already existing alert.
- * @param {type} obj  - object containing the message and the message type
+ * @param {object} obj  - object containing the message and the message type
  * @param {type} dialog - dialog where the message should be displayed; if null then the message
  * is displayed in the main page.
  */
@@ -859,9 +912,10 @@ function appendMessage(obj, dialog) {
 
 /***
  * Shows a message in the main page. The area is defined in the header.jsp
- * @param {type} type - type of message: success, info, ...
- * @param {type} message - message to show
- * @param {boolean} silentMode - if true, message is not displayed if OK.
+ * @param {String} type - type of message: success, info, error, warning, ...
+ * @param {String} message - message to show
+ * @param {boolean} silentMode - if true, message is not displayed if OK (default is false).
+ * @param {integer} waitinMs - delay that the modal will stay visible in ms (default is automaticly calculated).
  */
 function showMessageMainPage(type, message, silentMode, waitinMs) {
     if (isEmpty(silentMode)) {
@@ -877,13 +931,26 @@ function showMessageMainPage(type, message, silentMode, waitinMs) {
             waitinMs = 5000;
         }
     }
+    // Only display if not success in silent mode.
     if (!((type === "success") && (silentMode))) {
+        // We stop the previous delayed slide up (if any) and hide the alert.
+        $("#mainAlert").stop();
+        $("#mainAlert").slideUp(10);
+
+        // We feed the new content and disply the alert.
+        $("#mainAlert").removeClass("alert-success");
+        $("#mainAlert").removeClass("alert-error");
+        $("#mainAlert").removeClass("alert-info");
+        $("#mainAlert").removeClass("alert-warning");
         $("#mainAlert").addClass("alert-" + type);
         $("#alertDescription").html(message);
-        $("#mainAlert").fadeIn();
-        $("#mainAlert").fadeTo(waitinMs, 500).slideUp(500, function () {
+        $("#mainAlert").slideDown(10);
+
+        // We slowly hide it after waitinMs ms delay.
+        $("#mainAlert").fadeTo(waitinMs, 1, function () {
             $("#mainAlert").slideUp(500);
         });
+
     }
 }
 
@@ -1128,13 +1195,15 @@ $.fn.dataTableExt.oApi.fnNewAjax = function (oSettings, sNewSource) {
  * @param {type} divId - table unique identifier
  * @param {type} data - data that is presented in the table
  * @param {type} aoColumnsFunction - function to render the columns
+ * @param {type} aaSorting - Table to define the sorting column and order. Ex : [3, 'asc']
  * @param {type} defineLenghtMenu - allows the defintion of the select with the number or rows that should be displayed
  * @returns {TableConfigurationsClientSide}
  */
-function TableConfigurationsClientSide(divId, data, aoColumnsFunction, defineLenghtMenu) {
+function TableConfigurationsClientSide(divId, data, aoColumnsFunction, defineLenghtMenu, aaSorting) {
     this.divId = divId;
     this.aoColumnsFunction = aoColumnsFunction;
     this.aaData = data;
+    this.aaSorting = aaSorting;
 
     if (defineLenghtMenu) {
         this.lengthMenu = [10, 25, 50, 100];
@@ -1298,6 +1367,7 @@ function createDataTableWithPermissions(tableConfigurations, callbackFunction, o
     }
     if (tableConfigurations.serverSide) {
 
+
         configs["sAjaxSource"] = tableConfigurations.ajaxSource;
         configs["sAjaxDataProp"] = tableConfigurations.ajaxProp;
 
@@ -1343,6 +1413,18 @@ function createDataTableWithPermissions(tableConfigurations, callbackFunction, o
             };
         }
         configs["fnServerData"] = function (sSource, aoData, fnCallback, oSettings) {
+
+            var like = ""
+
+            $.each(oSettings.aoColumns, function (index, value) {
+                if (oSettings.aoColumns[index].like) {
+                    like += oSettings.aoColumns[index].sName + ","
+                }
+            })
+
+            like = like.substring(0, like.length - 1);
+
+            aoData.push({name: "sLike", value: like});
 
             var objectWL = $(objectWaitingLayer);
             if (objectWaitingLayer !== undefined) {
@@ -1409,7 +1491,7 @@ function createDataTableWithPermissions(tableConfigurations, callbackFunction, o
         $("#" + tableConfigurations.divId + "_wrapper #restoreFilterButton").remove();
         $("#" + tableConfigurations.divId + "_wrapper")
                 .find("[class='dt-buttons btn-group']").removeClass().addClass("pull-right").find("a").attr('id', 'showHideColumnsButton').removeClass()
-                .addClass("btn btn-default").attr("data-toggle", "tooltip").attr("title", showHideButtonTooltip).click(function () {
+                .addClass("btn btn-default pull-right").attr("data-toggle", "tooltip").attr("title", showHideButtonTooltip).click(function () {
             //$("#" + tableConfigurations.divId + " thead").empty();
         }).html("<span class='glyphicon glyphicon-cog'></span> " + showHideButtonLabel);
         $("#" + tableConfigurations.divId + "_wrapper #showHideColumnsButton").parent().before(
@@ -1719,11 +1801,21 @@ function displayFooter(doc) {
     footerBugString = footerBugString.replace("%LINK%", "https://github.com/vertigo17/Cerberus/issues/new?body=Cerberus%20Version%20:%20" + cerberusInformation.projectVersion + "-" + cerberusInformation.databaseCerberusTargetVersion);
     $("#footer").html(footerString + " - " + footerBugString);
 
+    // Tune the page layout to the environment where Cerberus is running.
+    envTuning(cerberusInformation.environment);
+
+}
+
+/**
+ * Change the page layout in order to show that we are in production or not.
+ * @param {String} myenv
+ * @returns {void}
+ */
+function envTuning(myenv) {
     // Background color is light yellow if the environment is not production.
-    if ((cerberusInformation.environment !== "prd") && (cerberusInformation.environment !== "prod") && (cerberusInformation.environment !== "PROD")) {
+    if ((myenv !== "prd") && (myenv !== "prod") && (myenv !== "PROD")) {
         document.body.style.background = "#FFFFCC";
     }
-
 }
 
 /**
@@ -1943,6 +2035,21 @@ function convToDate(timestamp) {
 }
 
 /**
+ * Method that return a String that contain the date. If date is 1970, the string return will be empty.
+ * @param {string} date
+ * @returns {string} date in string format
+ */
+function getDate(date) {
+    var d1 = new Date('1980-01-01');
+    var endExe = new Date(date);
+    if (endExe > d1) {
+        return endExe;
+    } else {
+        return "";
+    }
+}
+
+/**
  * Method used to restrict usage of some specific caracters.
  * @param {String} val value to test
  * @returns {boolean} true if is null, undefined of len >= 0
@@ -2110,7 +2217,6 @@ function autocompleteVariable(identifier, Tags) {
                     val = $(this).val();
                     $(this).autocomplete("search", val); //keep autocomplete open by
                     //searching the same input again
-                    $(this).focus();
                     return false;
                 }
             });
@@ -2172,6 +2278,7 @@ function showPicture(title, pictureUrl) {
     }));
     $('#showGenericModal').modal('show');
 }
+
 /**
  * Auxiliary function that opens the modal that allows user to view a textarea.
  * @param {type} title
@@ -2307,6 +2414,12 @@ function getSys() {
 
 /********************************SELECT2 COMBO*******************************************/
 
+/**
+ * Do a JSON encoded HTTP POST call
+ *
+ * @param {json} tag object that will be formated
+ * @returns {undefined} void
+ */
 function comboConfigTag_format(tag) {
     var markup = "<div class='select2-result-tag clearfix'>" +
             "<div class='select2-result-tag__title'>" + tag.tag + "</div>";
@@ -2369,6 +2482,74 @@ function getComboConfigTag() {
                 minimumInputLength: 0,
                 templateResult: comboConfigTag_format, // omitted for brevity, see the source of this page
                 templateSelection: comboConfigTag_formatSelection // omitted for brevity, see the source of this page
+            };
+
+    return config;
+
+}
+
+function comboConfigLabel_format(label) {
+    var markup = "<div class='select2-result-tag clearfix'>" +
+            "<div style='float:left;'><span class='label label-primary' style='background-color:"
+            + label.color + "' data-toggle='tooltip' data-labelid='"
+            + label.id + "' title='"
+            + label.description + "'>"
+            + label.label + "</span></div>";
+
+    markup += "</div>";
+
+    return markup;
+}
+
+function comboConfigLabel_formatSelection(label) {
+    var result = label.id;
+    if (!isEmpty(label.label)) {
+        result = "<div style='float:left;height: 34px'><span class='label label-primary' style='background-color:"
+                + label.color + "' data-toggle='tooltip' data-labelid='"
+                + label.id + "' title='"
+                + label.description + "'>"
+                + label.label + "</span></div>";
+    }
+    return result;
+}
+
+
+function getComboConfigLabel(labelType) {
+
+    var config =
+            {
+                ajax: {
+                    url: "ReadLabel?iSortCol_0=0&sSortDir_0=desc&sColumns=type&iDisplayLength=30&sSearch_0=" + labelType,
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        params.page = params.page || 1;
+                        return {
+                            sSearch: params.term, // search term
+                            iDisplayStart: (params.page * 30) - 30
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: $.map(data.contentTable, function (obj) {
+                                return {id: obj.id, label: obj.label, color: obj.color, description: obj.description};
+                            }),
+                            pagination: {
+                                more: (params.page * 30) < data.iTotalRecords
+                            }
+                        };
+                    },
+                    cache: true,
+                    allowClear: true
+                },
+                width: "100%",
+                escapeMarkup: function (markup) {
+                    return markup;
+                }, // let our custom formatter work
+                minimumInputLength: 0,
+                templateResult: comboConfigLabel_format, // omitted for brevity, see the source of this page
+                templateSelection: comboConfigLabel_formatSelection // omitted for brevity, see the source of this page
             };
 
     return config;

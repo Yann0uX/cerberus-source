@@ -20,10 +20,10 @@
 package org.cerberus.crud.entity;
 
 import java.sql.Timestamp;
-import java.util.HashMap;
 import java.util.List;
-import org.apache.logging.log4j.Logger;
+import java.util.TreeMap;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.cerberus.engine.entity.MessageGeneral;
 import org.cerberus.engine.entity.Selenium;
 import org.cerberus.engine.entity.Session;
@@ -39,6 +39,7 @@ public class TestCaseExecution {
     private static final Logger LOG = LogManager.getLogger(TestCaseExecution.class);
 
     private long id;
+    private String system;
     private String test;
     private String testCase;
     private String description;
@@ -47,6 +48,7 @@ public class TestCaseExecution {
     private String environment;
     private String environmentData;
     private String country;
+    private String robotDecli;
     private String browser;
     private String version;
     private String platform;
@@ -76,6 +78,7 @@ public class TestCaseExecution {
     private Timestamp DateCreated;
     private String UsrModif;
     private Timestamp DateModif;
+    private int testCaseVersion;
 
     /**
      * From here are data outside database model.
@@ -90,6 +93,8 @@ public class TestCaseExecution {
     private String myContextRoot;
     private String myLoginRelativeURL;
     private String seleniumIP;
+    private String seleniumIPUser;
+    private String seleniumIPPassword;
     private String seleniumPort;
     private Integer pageSource;
     private Integer seleniumLog;
@@ -97,7 +102,7 @@ public class TestCaseExecution {
     private boolean synchroneous;
     private String timeout;
     // Objects.
-    private TestCaseExecutionQueue testCaseExecutionQueue; 
+    private TestCaseExecutionQueue testCaseExecutionQueue;
     private Application applicationObj;
     private Invariant CountryObj;
     private Test testObj;
@@ -111,17 +116,18 @@ public class TestCaseExecution {
     // Host the list of Steps that will be executed (both pre tests and main test)
     private List<TestCaseStepExecution> testCaseStepExecutionList;
     // Host the full list of data calculated during the execution.
-    private HashMap<String, TestCaseExecutionData> testCaseExecutionDataMap;
+    private TreeMap<String, TestCaseExecutionData> testCaseExecutionDataMap;
     // This is used to keep track of all property calculated within a step/action/control. It is reset each time we enter a step/action/control and the property name is added to the list each time it gets calculated. In case it was already asked for calculation, we stop the execution with FA message.
     private List<String> recursiveAlreadyCalculatedPropertiesList;
     private List<TestCaseCountryProperties> testCaseCountryPropertyList;
     // Others
     private MessageGeneral resultMessage;
-    private Selenium selenium;
     private String executionUUID;
+    private Selenium selenium;
     private Session session;
-    private AppService lastServiceCalled;
     private List<RobotCapability> capabilities;
+    private AppService lastServiceCalled;
+    private Integer nbExecutions; // Has the nb of execution that was necessary to execute the testcase.
     // Global parameters.
     private Integer cerberus_action_wait_default;
     private boolean cerberus_featureflipping_activatewebsocketpush;
@@ -138,6 +144,30 @@ public class TestCaseExecution {
     public static final String CONTROLSTATUS_CA = "CA";
     public static final String CONTROLSTATUS_FA = "FA";
     public static final String CONTROLSTATUS_QU = "QU";
+
+    public String getSystem() {
+        return system;
+    }
+
+    public void setSystem(String system) {
+        this.system = system;
+    }
+
+    public String getRobotDecli() {
+        return robotDecli;
+    }
+
+    public void setRobotDecli(String robotDecli) {
+        this.robotDecli = robotDecli;
+    }
+
+    public Integer getNbExecutions() {
+        return nbExecutions;
+    }
+
+    public void setNbExecutions(Integer nbExecutions) {
+        this.nbExecutions = nbExecutions;
+    }
 
     public String getQueueState() {
         return queueState;
@@ -211,11 +241,11 @@ public class TestCaseExecution {
         this.recursiveAlreadyCalculatedPropertiesList = recursiveAlreadyCalculatedPropertiesList;
     }
 
-    public HashMap<String, TestCaseExecutionData> getTestCaseExecutionDataMap() {
+    public TreeMap<String, TestCaseExecutionData> getTestCaseExecutionDataMap() {
         return testCaseExecutionDataMap;
     }
 
-    public void setTestCaseExecutionDataMap(HashMap<String, TestCaseExecutionData> testCaseExecutionDataMap) {
+    public void setTestCaseExecutionDataMap(TreeMap<String, TestCaseExecutionData> testCaseExecutionDataMap) {
         this.testCaseExecutionDataMap = testCaseExecutionDataMap;
     }
     public static final String CONTROLSTATUS_NE = "NE";
@@ -544,6 +574,22 @@ public class TestCaseExecution {
         }
     }
 
+    public String getSeleniumIPUser() {
+        return seleniumIPUser;
+    }
+
+    public void setSeleniumIPUser(String seleniumIPUser) {
+        this.seleniumIPUser = seleniumIPUser;
+    }
+
+    public String getSeleniumIPPassword() {
+        return seleniumIPPassword;
+    }
+
+    public void setSeleniumIPPassword(String seleniumIPPassword) {
+        this.seleniumIPPassword = seleniumIPPassword;
+    }
+
     public String getSeleniumIP() {
         return seleniumIP;
     }
@@ -791,6 +837,14 @@ public class TestCaseExecution {
     public void setCapabilities(List<RobotCapability> capabilities) {
         this.capabilities = capabilities;
     }
+    
+    public int getTestCaseVersion() {
+    	return this.testCaseVersion;
+    }
+    
+    public void setTestCaseVersion(int testCaseVersion) {
+    	this.testCaseVersion = testCaseVersion;
+    }
 
     /**
      * Convert the current TestCaseExecution into JSON format
@@ -838,6 +892,9 @@ public class TestCaseExecution {
             result.put("userAgent", this.getUserAgent());
             result.put("queueId", this.getQueueID());
             result.put("manualExecution", this.getManualExecution());
+            result.put("testCaseVersion", this.getTestCaseVersion());
+            result.put("system", this.getSystem());
+            result.put("robotDecli", this.getRobotDecli());
 
             if (withChilds) {
                 // Looping on ** Step **

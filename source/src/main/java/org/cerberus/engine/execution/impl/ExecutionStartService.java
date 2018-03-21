@@ -28,7 +28,6 @@ import org.cerberus.crud.entity.CountryEnvironmentParameters;
 import org.cerberus.engine.entity.ExecutionUUID;
 import org.cerberus.crud.entity.Invariant;
 import org.cerberus.engine.entity.MessageGeneral;
-import org.cerberus.crud.entity.Parameter;
 import org.cerberus.enums.MessageGeneralEnum;
 import org.cerberus.crud.entity.TestCase;
 import org.cerberus.crud.entity.TestCaseExecution;
@@ -49,8 +48,6 @@ import org.cerberus.crud.service.ICountryEnvironmentParametersService;
 import org.cerberus.crud.factory.IFactoryCountryEnvironmentParameters;
 import org.cerberus.crud.service.IParameterService;
 import org.cerberus.crud.service.ITestCaseExecutionQueueService;
-import org.cerberus.enums.MessageEventEnum;
-import org.cerberus.util.answer.AnswerItem;
 
 /**
  *
@@ -146,6 +143,7 @@ public class ExecutionStartService implements IExecutionStartService {
                 tCExecution.setConditionVal1Init(tCase.getConditionVal1());
                 tCExecution.setConditionVal2(tCase.getConditionVal2());
                 tCExecution.setConditionVal2Init(tCase.getConditionVal2());
+                tCExecution.setTestCaseVersion(tCase.getTestCaseVersion());
             } else {
                 throw new CerberusException(new MessageGeneral(MessageGeneralEnum.NO_DATA_FOUND));
             }
@@ -196,6 +194,11 @@ public class ExecutionStartService implements IExecutionStartService {
         LOG.debug("Application Information Loaded - " + tCExecution.getApplicationObj().getApplication() + " - " + tCExecution.getApplicationObj().getDescription());
 
         /**
+         * Init System from Application.
+         */
+        tCExecution.setSystem(tCExecution.getApplicationObj().getSystem());
+
+        /**
          * Load Country information and Set it to the TestCaseExecution object.
          */
         LOG.debug("Loading Country Information");
@@ -230,7 +233,6 @@ public class ExecutionStartService implements IExecutionStartService {
                 cea = this.factorycountryEnvironmentParameters.create(tCExecution.getApplicationObj().getSystem(), tCExecution.getCountry(), tCExecution.getEnvironment(), tCExecution.getApplicationObj().getApplication(), tCExecution.getMyHost(), "", tCExecution.getMyContextRoot(), tCExecution.getMyLoginRelativeURL(), "", "", "", "", CountryEnvironmentParameters.DEFAULT_POOLSIZE);
                 cea.setIp(tCExecution.getMyHost());
                 cea.setUrl(tCExecution.getMyContextRoot());
-//                tCExecution.setUrl(cea.getIp()+ cea.getUrl());
                 tCExecution.setUrl(StringUtil.getURLFromString(cea.getIp(), cea.getUrl(), "", ""));
                 cea.setUrlLogin(tCExecution.getMyLoginRelativeURL());
                 tCExecution.setCountryEnvironmentParameters(cea);
@@ -393,12 +395,6 @@ public class ExecutionStartService implements IExecutionStartService {
                 if (tCExecution.getIp().equalsIgnoreCase("")) {
                     MessageGeneral mes = new MessageGeneral(MessageGeneralEnum.VALIDATION_FAILED_SELENIUM_EMPTYORBADIP);
                     mes.setDescription(mes.getDescription().replace("%IP%", tCExecution.getIp()));
-                    LOG.debug(mes.getDescription());
-                    throw new CerberusException(mes);
-                }
-                if (tCExecution.getPort().equalsIgnoreCase("")) {
-                    MessageGeneral mes = new MessageGeneral(MessageGeneralEnum.VALIDATION_FAILED_SELENIUM_EMPTYORBADPORT);
-                    mes.setDescription(mes.getDescription().replace("%PORT%", tCExecution.getPort()));
                     LOG.debug(mes.getDescription());
                     throw new CerberusException(mes);
                 }

@@ -212,12 +212,17 @@ public class ReadRobot extends HttpServlet {
         String columnToSort[] = sColumns.split(",");
         String columnName = columnToSort[columnToSortParameter];
         String sort = ParameterParserUtil.parseStringParam(request.getParameter("sSortDir_0"), "asc");
+        List<String> individualLike = new ArrayList(Arrays.asList(ParameterParserUtil.parseStringParam(request.getParameter("sLike"), "").split(",")));
 
         Map<String, List<String>> individualSearch = new HashMap<>();
         for (int a = 0; a < columnToSort.length; a++) {
             if (null != request.getParameter("sSearch_" + a) && !request.getParameter("sSearch_" + a).isEmpty()) {
                 List<String> search = new ArrayList(Arrays.asList(request.getParameter("sSearch_" + a).split(",")));
-                individualSearch.put(columnToSort[a], search);
+                if (individualLike.contains(columnToSort[a])) {
+                    individualSearch.put(columnToSort[a] + ":like", search);
+                } else {
+                    individualSearch.put(columnToSort[a], search);
+                }
             }
         }
 
@@ -226,6 +231,10 @@ public class ReadRobot extends HttpServlet {
         JSONArray jsonArray = new JSONArray();
         if (resp.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {//the service was able to perform the query, then we should get all values
             for (Robot robot : (List<Robot>) resp.getDataList()) {
+                if (robot != null) {
+                    robot.setHostPassword(null); // hide the password to the view
+                }
+
                 jsonArray.put(convertRobotToJSONObject(robot));
             }
         }
@@ -252,6 +261,9 @@ public class ReadRobot extends HttpServlet {
         if (answer.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {
             //if the service returns an OK message then we can get the item and convert it to JSONformat
             Robot lib = (Robot) answer.getItem();
+            if (lib != null) {
+                lib.setHostPassword(null); // hide the password to the view
+            }
             JSONObject response = convertRobotToJSONObject(lib);
             object.put("contentTable", response);
         }
@@ -269,22 +281,34 @@ public class ReadRobot extends HttpServlet {
 
         IRobotService libService = appContext.getBean(IRobotService.class);
 
-        //finds the project     
-        AnswerItem answer = libService.readByKey(robot);
+        //finds the project
+        try {
+            Robot robotObj = libService.readByKey(robot);
 
-        if (answer.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {
-            //if the service returns an OK message then we can get the item and convert it to JSONformat
-            Robot robotObj = (Robot) answer.getItem();
-            JSONObject response = convertRobotToJSONObject(robotObj);
-            response.put("hasPermissionsUpdate", libService.hasPermissionsUpdate(robotObj, request));
-            response.put("hasPermissionsDelete", libService.hasPermissionsDelete(robotObj, request));
+            if (robotObj != null) {
+                robotObj.setHostPassword(null); // hide the password to the view
+            }
 
-            object.put("contentTable", response);
+            if (robot == null) {
+                item.setResultMessage(new MessageEvent(MessageEventEnum.DATA_OPERATION_NO_DATA_FOUND));
+            } else {
+                //if the service returns an OK message then we can get the item and convert it to JSONformat
+                JSONObject response = convertRobotToJSONObject(robotObj);
+                response.put("hasPermissionsUpdate", libService.hasPermissionsUpdate(robotObj, request));
+                response.put("hasPermissionsDelete", libService.hasPermissionsDelete(robotObj, request));
+
+                object.put("contentTable", response);
+
+                item.setResultMessage(new MessageEvent(MessageEventEnum.DATA_OPERATION_OK));
+            }
+        } catch (CerberusException e) {
+            item.setItem(robot);
+            item.setResultMessage(new MessageEvent(e.getMessageError().getCodeString(), e.getMessageError().getDescription()));
         }
 
         object.put("hasPermissionsCreate", libService.hasPermissionsCreate(null, request));
+
         item.setItem(object);
-        item.setResultMessage(answer.getResultMessage());
 
         return item;
     }
@@ -306,11 +330,17 @@ public class ReadRobot extends HttpServlet {
         String sColumns = ParameterParserUtil.parseStringParam(request.getParameter("sColumns"), "test,testcase,application,project,ticket,description,behaviororvalueexpected,readonly,bugtrackernewurl,deploytype,mavengroupid");
         String columnToSort[] = sColumns.split(",");
 
+        List<String> individualLike = new ArrayList(Arrays.asList(ParameterParserUtil.parseStringParam(request.getParameter("sLike"), "").split(",")));
+
         Map<String, List<String>> individualSearch = new HashMap<>();
         for (int a = 0; a < columnToSort.length; a++) {
             if (null != request.getParameter("sSearch_" + a) && !request.getParameter("sSearch_" + a).isEmpty()) {
                 List<String> search = new ArrayList(Arrays.asList(request.getParameter("sSearch_" + a).split(",")));
-                individualSearch.put(columnToSort[a], search);
+                if (individualLike.contains(columnToSort[a])) {
+                    individualSearch.put(columnToSort[a] + ":like", search);
+                } else {
+                    individualSearch.put(columnToSort[a], search);
+                }
             }
         }
 

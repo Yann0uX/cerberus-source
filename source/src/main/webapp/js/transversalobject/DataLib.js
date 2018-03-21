@@ -21,24 +21,7 @@
 $(function () {
     $('[data-toggle="popover"]').popover()
     $('#editTestDataLibModal #types').change(function () {
-        if ($(this).val() === "SQL") {
-            $("#panelSQLEdit").collapse("show");
-            $("#panelSERVICEEdit").collapse("hide");
-            $("#panelCSVEdit").collapse("hide");
-        } else if ($(this).val() === "SERVICE") {
-            $("#panelSQLEdit").collapse("hide");
-            $("#panelSERVICEEdit").collapse("show");
-            $("#panelCSVEdit").collapse("hide");
-        } else if ($(this).val() === "CSV") {
-            $("#panelSQLEdit").collapse("hide");
-            $("#panelSERVICEEdit").collapse("hide");
-            $("#panelCSVEdit").collapse("show");
-        } else {
-            $("#panelSQLEdit").collapse("hide");
-            $("#panelSERVICEEdit").collapse("hide");
-            $("#panelCSVEdit").collapse("hide");
-        }
-
+        collapseOrExpandTypes();
     });
 
     $('#editTestDataLibModal #service').change(function () {
@@ -47,8 +30,29 @@ $(function () {
 
 })
 
+function collapseOrExpandTypes() {
+    var typesVal = $('#editTestDataLibModal #types').val();
+    if (typesVal === "SQL") {
+        $("#panelSQLEdit").collapse("show");
+        $("#panelSERVICEEdit").collapse("hide");
+        $("#panelCSVEdit").collapse("hide");
+    } else if (typesVal === "SERVICE") {
+        $("#panelSQLEdit").collapse("hide");
+        $("#panelSERVICEEdit").collapse("show");
+        $("#panelCSVEdit").collapse("hide");
+    } else if (typesVal === "CSV") {
+        $("#panelSQLEdit").collapse("hide");
+        $("#panelSERVICEEdit").collapse("hide");
+        $("#panelCSVEdit").collapse("show");
+    } else {
+        $("#panelSQLEdit").collapse("hide");
+        $("#panelSERVICEEdit").collapse("hide");
+        $("#panelCSVEdit").collapse("hide");
+    }
 
+}
 function openModalAppServiceFromHere() {
+
     var doc = new Doc();
 
     $('#editTestDataLibModal #service').parent().find(".input-group-btn").remove();
@@ -72,9 +76,10 @@ function openModalAppServiceFromHere() {
         formEdit.find("#servicepaths").prop("readonly", false);
 
     }
+
 }
 
-function openModalDataLib(service, mode, id) {
+function openModalDataLib(element, dataLibEntry, mode, id) {
     if ($('#editTestDataLibModal').data("initLabel") === undefined) {
         initModalDataLib(id);
         $('#editTestDataLibModal').data("initLabel", true);
@@ -82,14 +87,31 @@ function openModalDataLib(service, mode, id) {
 
     $('[data-toggle="popover"]').popover()
 
-
     if (mode === "EDIT") {
-        editDataLibClick(service);
-    } else if (mode == "ADD") {
-        addDataLibClick(service);
+        editDataLibClick(dataLibEntry);
+    } else if (mode === "ADD") {
+        addDataLibClick(dataLibEntry);
     } else {
-        duplicateDataLibClick(service);
+        duplicateDataLibClick(dataLibEntry);
     }
+
+    $("#editDataLibButton").off("click");
+    $("#editDataLibButton").click(function () {
+        $("#SubdataTable_edit").find("button").click
+
+        confirmDataLibModalHandler(element, "EDIT", id);
+    });
+
+    $("#addDataLibButton").off("click");
+    $("#addDataLibButton").click(function () {
+        confirmDataLibModalHandler(element, "ADD", id);
+    });
+
+    $("#duplicateDataLibButton").off("click");
+    $("#duplicateDataLibButton").click(function () {
+        confirmDataLibModalHandler(element, "DUPLICATE", id);
+    });
+
 }
 
 function initModalDataLib(id) {
@@ -100,23 +122,14 @@ function initModalDataLib(id) {
         'container': 'body'}
     )
 
-    console.info("init");
     var doc = new Doc();
 
-    $("#editDataLibButton").off("click");
-    $("#editDataLibButton").click(function () {
-        confirmDataLibModalHandler("EDIT", id);
+    // Click on add row button adds a Subdata entry.
+    $("#addSubData_edit").off("click");
+    $("#addSubData_edit").click(function () {
+        addNewSubDataRow("SubdataTable_edit");
     });
 
-    $("#addDataLibButton").off("click");
-    $("#addDataLibButton").click(function () {
-        confirmDataLibModalHandler("ADD", id);
-    });
-
-    $("#duplicateDataLibButton").off("click");
-    $("#duplicateDataLibButton").click(function () {
-        confirmDataLibModalHandler("DUPLICATE", id);
-    });
 
     displayInvariantList("system", "SYSTEM", false, "", "");
     displayInvariantList("environment", "ENVIRONMENT", false, "", "");
@@ -125,6 +138,9 @@ function initModalDataLib(id) {
     displayInvariantList("databaseUrl", "PROPERTYDATABASE", false, "", "");
     displayInvariantList("databaseCsv", "PROPERTYDATABASE", false, "", "");
     displayInvariantList("types", "TESTDATATYPE", false, "INTERNAL");
+
+    $("select[id='service']").append($('<option></option>').text("").val(""));
+    displayAppServiceList("service", "");
 
 
     $("#testCaseListModalLabel").text(doc.getDocLabel("page_testdatalib_m_gettestcases", "title"));
@@ -171,7 +187,7 @@ function initModalDataLib(id) {
     $("#cancelDuplicateTestDataLib").text(doc.getDocLabel("page_global", "btn_cancel"));
     $("#duplicateDataLibButton").text(doc.getDocLabel("page_global", "btn_duplicate"));
     //cancel + add buttons
-    $("#editDataLibButton").text(doc.getDocLabel("page_global", "btn_edit"));
+    $("#editDataLibButton").text(doc.getDocLabel("page_global", "buttonAdd"));
     $("#cancelTestDataLibButton").text(doc.getDocLabel("page_global", "btn_cancel"));
     $("#closeButton").text(doc.getDocLabel("page_global", "buttonClose"));
     //tabs, tab2 is updated when the entries are managed
@@ -183,10 +199,10 @@ function initModalDataLib(id) {
 
 /***
  * Open the modal with testcase information.
- * @param {String} service - type selected
+ * @param {String} dataLibEntry - type selected
  * @returns {null}
  */
-function editDataLibClick(service) {
+function editDataLibClick(dataLibEntry) {
 
     clearResponseMessage($('#editApplicationObjectModal'));
 
@@ -201,15 +217,15 @@ function editDataLibClick(service) {
     $('#addDataLibButton').attr('class', '');
     $('#addDataLibButton').attr('hidden', 'hidden');
 
-    feedDataLibModal(service, "editTestDataLibModal", "EDIT");
+    feedDataLibModal(dataLibEntry, "editTestDataLibModal", "EDIT");
 }
 
 /***
  * Open the modal with testcase information.
- * @param {String} service - type selected
+ * @param {String} dataLibEntry - type selected
  * @returns {null}
  */
-function duplicateDataLibClick(service) {
+function duplicateDataLibClick(dataLibEntry) {
 
     $('#editDataLibButton').attr('class', '');
     $('#editDataLibButton').attr('hidden', 'hidden');
@@ -218,15 +234,15 @@ function duplicateDataLibClick(service) {
     $('#addDataLibButton').attr('class', '');
     $('#addDataLibButton').attr('hidden', 'hidden');
 
-    feedDataLibModal(service, "editTestDataLibModal", "DUPLICATE");
+    feedDataLibModal(dataLibEntry, "editTestDataLibModal", "DUPLICATE");
 }
 
 /***
  * Open the modal in order to create a new testcase.
- * @param {String} service - type selected
+ * @param {String} dataLibEntry - type selected
  * @returns {null}
  */
-function addDataLibClick(service) {
+function addDataLibClick(dataLibEntry) {
 
     // Prepare all Events handler of the modal.
 
@@ -239,7 +255,7 @@ function addDataLibClick(service) {
     $('#duplicateDataLibButton').attr('class', '');
     $('#duplicateDataLibButton').attr('hidden', 'hidden');
 
-    feedDataLibModal(service, "editTestDataLibModal", "ADD");
+    feedDataLibModal(dataLibEntry, "editTestDataLibModal", "ADD");
 }
 
 /***
@@ -248,7 +264,7 @@ function addDataLibClick(service) {
  * @param {String} id - id of the selected service item if GetFromDataLib is selected.
  * @returns {null}
  */
-function confirmDataLibModalHandler(mode, id) {
+function confirmDataLibModalHandler(element, mode, id) {
     //shows the modal that allows the creation of test data lib 
     var formEdit = $("#editTestDataLibModal #editTestLibData");
 
@@ -287,8 +303,15 @@ function confirmDataLibModalHandler(mode, id) {
     // Getting Data from Database TAB
     var table1 = $("#subdataTableBody_edit tr");
     var table_subdata = [];
+
     for (var i = 0; i < table1.length; i++) {
         table_subdata.push($(table1[i]).data("subdata"));
+    }
+
+    if ($("#tabsedit-1 #subdataCheck").is(":checked")) {
+        for (var i = 1; i < table_subdata.length; i++) {
+            table_subdata[i].toDelete = true;
+        }
     }
 
     // Get the header data from the form.
@@ -302,29 +325,27 @@ function confirmDataLibModalHandler(mode, id) {
     var editorScr = ace.edit($("#editTestLibData #script")[0]);
     dataForm.script = encodeURIComponent(editorScr.getSession().getDocument().getValue());
 
+    var file = $("#editTestDataLibModal input[type=file]");
+    files = file.prop("files")[0]
+
+    var sa = formEdit.serializeArray();
+    var formData = new FormData();
+
+    for (var i in dataForm) {
+        formData.append(i, dataForm[i]);
+    }
+
+    formData.append("file", file.prop("files")[0]);
+
+    formData.append("subDataList", JSON.stringify(table_subdata));
+
     $.ajax({
-        url: myServlet,
         async: true,
+        url: myServlet,
         method: "POST",
-        data: {system: dataForm.system,
-            country: dataForm.country,
-            environment: dataForm.environment,
-            libdescription: dataForm.libdescription,
-            csvUrl: dataForm.csvUrl,
-            database: dataForm.database,
-            databaseCsv: dataForm.databaseCsv,
-            databaseUrl: dataForm.databaseUrl,
-            envelope: dataForm.envelope,
-            group: dataForm.group,
-            method: dataForm.method,
-            name: dataForm.name,
-            script: dataForm.script,
-            separator: dataForm.separator,
-            servicepath: dataForm.servicepath,
-            service: dataForm.service,
-            testdatalibid: dataForm.testdatalibid,
-            type: dataForm.type,
-            subDataList: JSON.stringify(table_subdata)},
+        data: formData,
+        processData: false,
+        contentType: false,
         success: function (data) {
             hideLoaderInModal('#editTestDataLibModal');
             if (getAlertType(data.messageType) === "success") {
@@ -332,12 +353,13 @@ function confirmDataLibModalHandler(mode, id) {
                     var oTable = $("#listOfTestDataLib").dataTable();
                     oTable.fnDraw(true);
                 } else {
-                    displayDataLibList(id, undefined).then(function () {
+                    if (element != null) {
+                        var editor = ace.edit($("#" + element)[0])
+                        displayDataLibList(id, undefined, data)
                         $("." + id).parent().find("button").attr('onclick', 'openModalDataLib(' + $("." + id).val() + ",'EDIT'," + "'" + id + "')");
                         $("." + id).parent().find("button").find('span').removeClass("glyphicon-plus").addClass("glyphicon-pencil")
-                        editor.setValue($("." + id).val())
-                    })
-                            ;
+                        editor.setValue($("#name").val())
+                    }
                 }
 
                 $('#editTestDataLibModal').modal('hide');
@@ -411,6 +433,22 @@ function feedDataLibModal(serviceName, modalId, mode) {
 
 }
 
+function activateSOAPServiceFields(modal, serviceValue) {
+    if (serviceValue === "") {
+        $(modal + " #servicepath").prop("readonly", false);
+        $(modal + " #method").prop("readonly", false);
+        var editor = ace.edit($(modal + " #envelope")[0]);
+        editor.container.style.opacity = 1;
+        editor.renderer.setStyle("disabled", false);
+    } else {
+        $(modal + " #servicepath").prop("readonly", true);
+        $(modal + " #method").prop("readonly", true);
+        var editor = ace.edit($(modal + " #envelope")[0]);
+        editor.container.style.opacity = 0.5;
+        editor.renderer.setStyle("disabled", true);
+    }
+}
+
 /***
  * Feed the TestCase modal with all the data from the TestCase.
  * @param {String} testDataLib - service object to be loaded.
@@ -440,6 +478,7 @@ function feedDataLibModalData(testDataLib, modalId, mode, hasPermissionsUpdate) 
         $('#editTestDataLibModal #name').prop("value", obj.name);
 
         $('#editTestDataLibModal #types').prop("value", obj.type);
+        collapseOrExpandTypes();
         $('#editTestDataLibModal #system').find('option[value="' + obj.system + '"]').prop("selected", true);
         $('#editTestDataLibModal #environment').find('option[value="' + obj.environment + '"]').prop("selected", true);
         $('#editTestDataLibModal #country').find('option[value="' + obj.country + '"]').prop("selected", true);
@@ -462,27 +501,8 @@ function feedDataLibModalData(testDataLib, modalId, mode, hasPermissionsUpdate) 
 
         $('#editTestDataLibModal #created').prop("value", obj.created);
         $('#editTestDataLibModal #creator').prop("value", obj.creator);
-        $('#editTestDataLibModal #lastModified').prop("value", obj.lastModified);
+        $('#editTestDataLibModal #lastModified').prop("value", getDate(obj.lastModified));
         $('#editTestDataLibModal #lastModifier').prop("value", obj.lastModifier);
-
-        if (obj.types === "SQL") {
-            $("#panelSQLEdit").collapse("show");
-            $("#panelSERVICEEdit").collapse("hide");
-            $("#panelCSVEdit").collapse("hide");
-        } else if (obj.types === "SERVICE") {
-            $("#panelSERVICEEdit").collapse("show");
-            $("#panelSQLEdit").collapse("hide");
-            $("#panelCSVEdit").collapse("hide");
-        } else if (obj.types === "CSV") {
-            $("#panelCSVEdit").collapse("show");
-            $("#panelSQLEdit").collapse("hide");
-            $("#panelSERVICEEdit").collapse("hide");
-        } else {
-            //hide all if the type is static
-            $("#panelSQLEdit").collapse("hide");
-            $("#panelSERVICEEdit").collapse("hide");
-            $("#panelCSVEdit").collapse("hide");
-        }
 
         openModalAppServiceFromHere();
 
@@ -508,11 +528,11 @@ function feedDataLibModalData(testDataLib, modalId, mode, hasPermissionsUpdate) 
             $('#editTestDataLibModal #groupedit').change();
         });
 
-         if (!hasPermissionsUpdate) { // If readonly, we only readonly all fields
-	         $('#editDataLibButton').attr('class', '');
-	         $('#editDataLibButton').attr('hidden', 'hidden');
-         }
-         
+        if (!hasPermissionsUpdate) { // If readonly, we only readonly all fields
+            $('#editDataLibButton').attr('class', '');
+            $('#editDataLibButton').attr('hidden', 'hidden');
+        }
+
         //Highlight envelop on modal loading
         var editor = ace.edit($("#editTestDataLibModal #envelope")[0]);
         editor.setTheme("ace/theme/chrome");

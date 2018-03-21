@@ -46,7 +46,7 @@ public interface IRobotService {
      * @param robot
      * @return
      */
-    AnswerItem<Robot> readByKey(String robot);
+    Robot readByKey(String robot) throws CerberusException;
 
     /**
      *
@@ -61,7 +61,7 @@ public interface IRobotService {
      * @param columnName
      * @param sort
      * @param searchParameter
-     * @param string
+     * @param individualSearch
      * @return
      */
     AnswerList<Robot> readByCriteria(int startPosition, int length, String columnName, String sort, String searchParameter, Map<String, List<String>> individualSearch);

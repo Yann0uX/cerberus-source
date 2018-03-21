@@ -70,7 +70,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 public class UpdateTestCaseWithDependencies1 extends HttpServlet {
 
     private static final Logger LOG = LogManager.getLogger(UpdateTestCaseWithDependencies1.class);
-    
+
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -112,9 +112,9 @@ public class UpdateTestCaseWithDependencies1 extends HttpServlet {
         String testCase = jObj.getString("informationTestCase");
         JSONArray properties = jObj.getJSONArray("propArr");
         JSONArray stepArray = jObj.getJSONArray("stepArray");
-        
+
         boolean duplicate = false;
-        
+
         /**
          * Checking all constrains before calling the services.
          */
@@ -214,16 +214,20 @@ public class UpdateTestCaseWithDependencies1 extends HttpServlet {
 
                 List<TestCaseStepActionControl> tcsacFromDtb = new ArrayList(tcsacService.findControlByTestTestCase(initialTest, initialTestCase));
                 tcsacService.compareListAndUpdateInsertDeleteElements(tcsacFromPage, tcsacFromDtb, duplicate);
+                
+                tc.setTestCaseVersion(tc.getTestCaseVersion() + 1);
+                
+                testCaseService.updateTestCase(tc);
 
                 /**
                  * Adding Log entry.
                  */
                 if (ans.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {
                     /**
-                     * Update was succesfull. Adding Log entry.
+                     * Update was successful. Adding Log entry.
                      */
                     ILogEventService logEventService = appContext.getBean(LogEventService.class);
-                    logEventService.createForPrivateCalls("/UpdateTestCaseWithDependencies1", "UPDATE", "Update testcase : ['" + tc.getTest() + "'|'" + tc.getTestCase() + "']", request);
+                    logEventService.createForPrivateCalls("/UpdateTestCaseWithDependencies1", "UPDATE", "Update testcase : ['" + tc.getTest() + "'|'" + tc.getTestCase() + "'] version : "+tc.getTestCaseVersion(), request);
                 }
 
             }
@@ -305,10 +309,11 @@ public class UpdateTestCaseWithDependencies1 extends HttpServlet {
             boolean delete = propJson.getBoolean("toDelete");
             String property = propJson.getString("property");
             String description = propJson.getString("description");
+            int cacheExpire = propJson.getInt("cacheExpire");
             String type = propJson.getString("type");
             String value = propJson.getString("value1");
             String value2 = propJson.getString("value2");
-            int length = propJson.getInt("length");
+            String length = propJson.getString("length");
             int rowLimit = propJson.getInt("rowLimit");
             int retryNb = propJson.optInt("retryNb");
             int retryPeriod = propJson.optInt("retryPeriod");
@@ -319,7 +324,7 @@ public class UpdateTestCaseWithDependencies1 extends HttpServlet {
                 for (int j = 0; j < countries.length(); j++) {
                     String country = countries.getString(j);
 
-                    testCaseCountryProp.add(testCaseCountryPropertiesFactory.create(test, testCase, country, property, description, type, database, value, value2, length, rowLimit, nature, retryNb, retryPeriod));
+                    testCaseCountryProp.add(testCaseCountryPropertiesFactory.create(test, testCase, country, property, description, type, database, value, value2, length, rowLimit, nature, retryNb, retryPeriod, cacheExpire));
                 }
             }
         }
@@ -330,7 +335,7 @@ public class UpdateTestCaseWithDependencies1 extends HttpServlet {
         List<TestCaseStep> testCaseStep = new ArrayList();
         ITestCaseStepService tcsService = appContext.getBean(ITestCaseStepService.class);
         IFactoryTestCaseStep testCaseStepFactory = appContext.getBean(IFactoryTestCaseStep.class);
-        
+
         for (int i = 0; i < stepArray.length(); i++) {
             JSONObject step = stepArray.getJSONObject(i);
 

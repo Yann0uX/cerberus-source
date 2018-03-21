@@ -111,8 +111,11 @@ public class RunTestCase extends HttpServlet {
 
         //Tool
         String ss_ip = ""; // Selenium IP
+        String ss_ip_user = ""; // Selenium Host (optional)
+        String ss_ip_pass = ""; // Selenium Password (optional)
         String ss_p = ""; // Selenium Port
         String browser = "";
+        String robotDecli = "";
         String version = "";
         String platform = "";
         String robot = "";
@@ -147,7 +150,7 @@ public class RunTestCase extends HttpServlet {
         int screenshot = ParameterParserUtil.parseIntegerParam(request.getParameter("screenshot"), 1);
         int verbose = ParameterParserUtil.parseIntegerParam(request.getParameter("verbose"), 0);
         timeout = ParameterParserUtil.parseStringParamAndSanitize(request.getParameter("timeout"), "");
-        synchroneous = ParameterParserUtil.parseBooleanParam(request.getParameter("synchroneous"), true);
+        synchroneous = ParameterParserUtil.parseBooleanParam(request.getParameter("synchroneous"), false);
         getPageSource = ParameterParserUtil.parseIntegerParam(request.getParameter("pageSource"), 1);
         getSeleniumLog = ParameterParserUtil.parseIntegerParam(request.getParameter("seleniumLog"), 1);
         manualExecution = ParameterParserUtil.parseStringParam(request.getParameter("manualExecution"), "N");
@@ -230,14 +233,20 @@ public class RunTestCase extends HttpServlet {
         }
 
         // If Robot is feeded, we check it exist. If it exist, we overwrite the associated parameters.
-        if (!"".equals(robot)) {
+        if (!StringUtil.isNullOrEmpty(robot)) {
             IRobotService robotService = appContext.getBean(IRobotService.class);
             try {
-                Robot robObj = robotService.convert(robotService.readByKey(robot));
+                Robot robObj = robotService.readByKey(robot);
                 // If Robot parameter is defined and we can find the robot, we overwrite the corresponding parameters.
                 ss_ip = ParameterParserUtil.parseStringParam(robObj.getHost(), ss_ip);
+                ss_ip_user = robObj.getHostUser();
+                ss_ip_pass = robObj.getHostPassword();
                 ss_p = ParameterParserUtil.parseStringParam(String.valueOf(robObj.getPort()), ss_p);
                 browser = ParameterParserUtil.parseStringParam(robObj.getBrowser(), browser);
+                robotDecli = ParameterParserUtil.parseStringParam(robObj.getRobotDecli(), "");
+                if (StringUtil.isNullOrEmpty(robotDecli)) {
+                    robotDecli = robObj.getRobot();
+                }
                 version = ParameterParserUtil.parseStringParam(robObj.getVersion(), version);
                 platform = ParameterParserUtil.parseStringParam(robObj.getPlatform(), platform);
                 active = robObj.getActive();
@@ -248,6 +257,8 @@ public class RunTestCase extends HttpServlet {
                 errorMessage += "Error - Robot [" + robot + "] does not exist. ";
                 error = true;
             }
+        } else {
+            robotDecli = browser;
         }
         // We cannot execute a testcase on a desactivated Robot.
         if (active.equals("N")) {
@@ -301,6 +312,7 @@ public class RunTestCase extends HttpServlet {
             IFactoryTestCaseExecution factoryTCExecution = appContext.getBean(IFactoryTestCaseExecution.class);
             IFactoryTestCaseExecutionQueue factoryTCExecutionQueue = appContext.getBean(IFactoryTestCaseExecutionQueue.class);
             ITestCaseExecutionService tces = appContext.getBean(ITestCaseExecutionService.class);
+            ITestCaseService tcs = appContext.getBean(ITestCaseService.class);            
             TestCase tCase = factoryTCase.create(test, testCase);
 
             // Building Execution Object.
@@ -308,7 +320,9 @@ public class RunTestCase extends HttpServlet {
                     0, 0, "", "", "", null, ss_ip, null, ss_p, tag, verbose, screenshot, getPageSource, getSeleniumLog, synchroneous, timeout, outputFormat, null,
                     Infos.getInstance().getProjectNameAndVersion(), tCase, null, null, manualURL, myHost, myContextRoot, myLoginRelativeURL, myEnvData, ss_ip, ss_p,
                     null, new MessageGeneral(MessageGeneralEnum.EXECUTION_PE_TESTSTARTED), executor, numberOfRetries, screenSize, capabilities,
-                    "", "", "", "", "", manualExecution, userAgent);
+                    "", "", "", "", "", manualExecution, userAgent, 0, "", robotDecli);
+            tCExecution.setSeleniumIPUser(ss_ip_user);
+            tCExecution.setSeleniumIPPassword(ss_ip_pass);
 
             /**
              * Set IdFromQueue
@@ -508,7 +522,6 @@ public class RunTestCase extends HttpServlet {
                         + MessageGeneralEnum.EXECUTION_FA_SERVLETVALIDATONS.getCode()
                         + " " + MessageGeneralEnum.EXECUTION_FA_SERVLETVALIDATONS.getDescription() + " " + errorMessage;
                 out.println(errorMessageFinal);
-//            out.println(helpMessage);
             }
         }
 

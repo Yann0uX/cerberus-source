@@ -55,13 +55,13 @@ public class DatabaseVersioningService implements IDatabaseVersioningService {
                 preStat.execute(SQLString);
                 LOG.info("'" + SQLString + "' Executed successfully.");
             } catch (Exception exception1) {
-                LOG.error(exception1.toString(), exception1);
+                LOG.error(exception1.toString());
                 return exception1.toString();
             } finally {
                 preStat.close();
             }
         } catch (Exception exception1) {
-            LOG.error(exception1.toString(), exception1);
+            LOG.error(exception1.toString());
             return exception1.toString();
         } finally {
             try {
@@ -9674,7 +9674,384 @@ public class DatabaseVersioningService implements IDatabaseVersioningService {
 
 
         return SQLInstruction;
+        // ADD private four invariants for all criterias
+        // 1252
+        b = new StringBuilder();
+        b.append("INSERT INTO `invariant` (`idname`, `value`, `sort`, `description`) VALUES ");
+        b.append("  ('CAMPAIGN_TCCRITERIA', 'PRIORITY', 10 , '')");
+        b.append("  ,('CAMPAIGN_TCCRITERIA', 'STATUS', 20 , '')");
+        b.append("  ,('CAMPAIGN_TCCRITERIA', 'SYSTEM', 30 , '')");
+        b.append("  ,('CAMPAIGN_TCCRITERIA', 'APPLICATION', 40 , '')");
+        a.add(b.toString());
+
+        // ADD a parameter for maximum testcase to be returned
+        // 1253
+        b = new StringBuilder();
+        b.append("INSERT INTO `parameter` (`system`,`param`, `value`, `description`) VALUES ");
+        b.append("  ('','cerberus_testcase_maxreturn', '1000', 'Integer that correspond to the maximum of testcase that cerberus can return')");
+        a.add(b.toString());
+
+        // ADD user password for robot host
+        // 1254-1255
+        b = new StringBuilder();
+        b.append("ALTER TABLE `robot` add column host_user varchar(255)");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("ALTER TABLE `robot` add column host_password varchar(255)");
+        a.add(b.toString());
+
+        // Update cerberus_testcase_maxreturn parameter.
+        // 1256
+        b = new StringBuilder();
+        b.append("UPDATE `parameter` SET `param`='cerberus_campaign_maxtestcase', `description`='Integer that correspond to the maximum number of testcase that a Cerberus campaign can contain.' WHERE `system`='' and `param`='cerberus_testcase_maxreturn';");
+        a.add(b.toString());
+
+        //-- Enrich parameter cerberus_notification_tagexecutionend_body with extra variable.
+        // 1257
+        b = new StringBuilder();
+        b.append("UPDATE parameter SET description='Cerberus End of tag execution notification email body. %TAG%, %URLTAGREPORT%, %CAMPAIGN%, %TAGDURATION%, %TAGSTART%, %TAGEND%, %TAGGLOBALSTATUS% and %TAGTCDETAIL% can be used as variables.', value=REPLACE(value, 'You can analyse the result', '<table><thead><tr style=\"background-color:#cad3f1; font-style:bold\"><td>Start</td><td>End</td><td>Duration</td></tr></thead><tbody><tr><td>%TAGSTART%</td><td>%TAGEND%</td><td>%TAGDURATION% min</td></tr></tbody></table><br><br>Global Status : <br>%TAGGLOBALSTATUS%<br><br>Non OK TestCases : <br>%TAGTCDETAIL%<br><br>You can analyse the result') WHERE param='cerberus_notification_tagexecutionend_body';");
+        a.add(b.toString());
+
+        // New updated Documentation.
+        // 1258-1259
+        b = new StringBuilder();
+        b.append("select 1 from DUAL;");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("select 1 from DUAL;");
+        a.add(b.toString());
+
+        // rename parameters in order to fit standard
+        // 1260-1263
+        b = new StringBuilder();
+        b.append("update parameter set param = replace(param, 'integration_', 'cerberus_') where param like 'integration_%';");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("update parameter set param = replace(param, 'jenkins_', 'cerberus_jenkins') where param like 'jenkins_%';");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("update parameter set param = 'cerberus_appium_swipe_duration' where param = 'appium_swipeDuration';");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("update parameter set param = replace(param, 'CI_OK_', 'cerberus_ci_okcoef') where param like 'CI_OK%';");
+        a.add(b.toString());
+
+        // moved Battery to Label
+        // 1264-1268
+        b = new StringBuilder();
+        b.append("ALTER TABLE `label` ADD COLUMN `Type` VARCHAR(45) NOT NULL DEFAULT 'STICKER' AFTER `Label`;");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("INSERT INTO label (`system`,`Label`,`Type`,`Color`,`ParentLabel`, `Description`, `UsrCreated`)");
+        b.append(" SELECT '', testbattery, 'BATTERY', '#CCCCCC', '', Description, 'DatabaseVersioningV1264' from testbattery");
+        b.append(" ON DUPLICATE KEY UPDATE `UsrModif` = 'DatabaseVersioningV1264', DateModif = now();");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("INSERT INTO testcaselabel (`Test`,`TestCase`,`LabelId`, `UsrCreated`)");
+        b.append(" SELECT Test, TestCase, l.id, 'DatabaseVersioningV1264' from testbatterycontent b");
+        b.append("  join label l where b.testbattery = l.Label");
+        b.append("  ON DUPLICATE KEY UPDATE `UsrModif` = 'DatabaseVersioningV1264', DateModif = now();");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("INSERT INTO campaignlabel (`campaign`,`LabelId`, `UsrCreated`)");
+        b.append(" SELECT campaign, l.id, 'DatabaseVersioningV1264' from campaigncontent b");
+        b.append("  join label l where b.testbattery = l.Label");
+        b.append("  ON DUPLICATE KEY UPDATE `UsrModif` = 'DatabaseVersioningV1264', DateModif = now();");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("INSERT INTO `invariant` (`idname`, `value`, `sort`, `description`) VALUES ");
+        b.append("('LABELTYPE', 'STICKER', 100, 'Sticker.')");
+        b.append(",('LABELTYPE', 'BATTERY', 200, 'Battery.')");
+        b.append(",('LABELTYPE', 'REQUIREMENT', 300, 'Requirement.')");
+        b.append(",('INVARIANTPRIVATE', 'LABELTYPE', 700, '');");
+        a.add(b.toString());
+
+        // ADD a parameter for the path to store csv file
+        // 1269
+        b = new StringBuilder();
+        b.append("INSERT INTO `parameter` (`system`,`param`, `value`, `description`) VALUES ");
+        b.append("  ('','cerberus_testdatalibcsv_path', '/path/to/csv', 'Default path for the csv file location')");
+        a.add(b.toString());
+
+        // ADD requirement additional data
+        // 1270-1271
+        b = new StringBuilder();
+        b.append("ALTER TABLE `label` ");
+        b.append("ADD COLUMN `ReqType` VARCHAR(100) NOT NULL DEFAULT '' AFTER `ParentLabel`,");
+        b.append("ADD COLUMN `ReqStatus` VARCHAR(100) NOT NULL DEFAULT '' AFTER `ReqType`,");
+        b.append("ADD COLUMN `ReqCriticity` VARCHAR(100) NOT NULL DEFAULT '' AFTER `ReqStatus`,");
+        b.append("ADD COLUMN `LongDesc` TEXT NOT NULL AFTER `Description`;");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("INSERT INTO `invariant` (`idname`, `value`, `sort`, `description`) VALUES  ");
+        b.append(" ('REQUIREMENTTYPE', 'Unknown', 100, '')");
+        b.append(",('REQUIREMENTTYPE', 'Ergonomy', 110, '')");
+        b.append(",('REQUIREMENTTYPE', 'Evolutivity', 120, '')");
+        b.append(",('REQUIREMENTTYPE', 'Functional', 130, '')");
+        b.append(",('REQUIREMENTTYPE', 'Internationalization', 140, '')");
+        b.append(",('REQUIREMENTTYPE', 'Legal', 150, '')");
+        b.append(",('REQUIREMENTTYPE', 'Maintenance', 160, '')");
+        b.append(",('REQUIREMENTTYPE', 'Operation', 170, '')");
+        b.append(",('REQUIREMENTTYPE', 'Portability', 180, '')");
+        b.append(",('REQUIREMENTTYPE', 'Performance', 190, '')");
+        b.append(",('REQUIREMENTTYPE', 'Scalability', 200, '')");
+        b.append(",('REQUIREMENTTYPE', 'Security', 210, '')");
+        b.append(",('REQUIREMENTSTATUS', 'Unknown', 100, '')");
+        b.append(",('REQUIREMENTSTATUS', 'Approved', 200, '')");
+        b.append(",('REQUIREMENTSTATUS', 'In Progress', 300, '')");
+        b.append(",('REQUIREMENTSTATUS', 'Verified', 400, '')");
+        b.append(",('REQUIREMENTSTATUS', 'Obsolete', 500, '')");
+        b.append(",('REQUIREMENTCRITICITY', 'Unknown', 100, '')");
+        b.append(",('REQUIREMENTCRITICITY', 'Low', 200, '')");
+        b.append(",('REQUIREMENTCRITICITY', 'Medium', 300, '')");
+        b.append(",('REQUIREMENTCRITICITY', 'High', 400, '')");
+        b.append(",('INVARIANTPUBLIC', 'REQUIREMENTTYPE', '700', '')");
+        b.append(",('INVARIANTPUBLIC', 'REQUIREMENTSTATUS', '750', '')");
+        b.append(",('INVARIANTPUBLIC', 'REQUIREMENTCRITICITY', '800', '');");
+        a.add(b.toString());
+
+        // New updated Documentation.
+        // 1272-1273
+        b = new StringBuilder();
+        b.append("select 1 from DUAL;");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("select 1 from DUAL;");
+        a.add(b.toString());
+
+        // New updated Documentation.
+        // 1274-1275
+        b = new StringBuilder();
+        b.append("select 1 from DUAL;");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("select 1 from DUAL;");
+        a.add(b.toString());
+
+        // ADD a parameter for the path to store manual exe files
+        // 1276-1277
+        b = new StringBuilder();
+        b.append("INSERT INTO `parameter` (`system`,`param`, `value`, `description`) VALUES ");
+        b.append("  ('','cerberus_exemanualmedia_path', '/path/to/exemanualmedia', 'Path to store the Cerberus Media files for Manual executions.')");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("UPDATE `parameter` SET `param`='cerberus_exeautomedia_path', `description`='Path to store the Cerberus Media files for Automatic executions (like Selenium Screenshot or SOAP requests and responses).' WHERE `param`='cerberus_mediastorage_path';");
+        a.add(b.toString());
+
+        // New updated Documentation.
+        // 1278-1279
+        a.add("select 1 from DUAL;");
+        a.add("select 1 from DUAL;");
+
+        // New updated Documentation.
+        // 1280-1281
+        a.add("select 1 from DUAL;");
+        a.add("select 1 from DUAL;");
+
+        // New Invariant to activate campaign notification
+        // 1282
+        b = new StringBuilder();
+        b.append("INSERT INTO `invariant` (`idname`, `value`, `sort`, `description`) VALUES  ");
+        b.append(" ('CAMPAIGNSTARTNOTIF', 'Y', 100, 'Yes')");
+        b.append(",('CAMPAIGNSTARTNOTIF', 'N', 200, 'No')");
+        b.append(",('CAMPAIGNENDNOTIF', 'Y', 100, 'Yes')");
+        b.append(",('CAMPAIGNENDNOTIF', 'N', 200, 'No')");
+        b.append(",('CAMPAIGNENDNOTIF', 'CIKO', 300, 'Only when Continuous Integration result is KO.')");
+        b.append(",('INVARIANTPRIVATE', 'CAMPAIGNSTARTNOTIF', '750', '')");
+        b.append(",('INVARIANTPRIVATE', 'CAMPAIGNENDNOTIF', '800', '');");
+        a.add(b.toString());
+
+        // Enrich email notification.
+        // 1283
+        b = new StringBuilder(); // adding table with CI result.
+        b.append("UPDATE `parameter` SET ");
+        b.append(" description='Cerberus End of tag execution notification email body. %TAG%, %URLTAGREPORT%, %CAMPAIGN%, %TAGDURATION%, %TAGSTART%, %TAGEND%, %CIRESULT%, %CISCORE%, %TAGGLOBALSTATUS% and %TAGTCDETAIL% can be used as variables.'");
+        b.append(" , value=replace(value,'%TAGDURATION% min</td></tr></tbody></table>','%TAGDURATION% min</td></tr></tbody></table><table><thead><tr style=\"background-color:#cad3f1; font-style:bold\"><td>CI Result</td><td>CI Score</td></tr></thead><tbody><tr><td>%CIRESULT%</td><td>%CISCORE%</td></tr></tbody></table>') ");
+        b.append(" where param='cerberus_notification_tagexecutionend_body';");
+        a.add(b.toString());
+
+        // Add invariant filter type.
+        // 1284-1285
+        b = new StringBuilder();
+        b.append("INSERT INTO `invariant` (`idname`, `value`, `sort`, `description`, `VeryShortDesc`) ");
+        b.append(" VALUES ('INVARIANTPRIVATE','FILETYPE', '710','All type of file', 'file type')");
+        a.add(b.toString());
+
+        b = new StringBuilder();
+        b.append("INSERT INTO `invariant` (`idname`, `value`, `sort`, `description`, `VeryShortDesc`) VALUES ");
+        b.append("('FILETYPE', 'PNG', '6600', '', ''),");
+        b.append("('FILETYPE', 'JPG', '6700', '', ''),");
+        b.append("('FILETYPE', 'XML', '16500', '', ''),");
+        b.append("('FILETYPE', 'JSON', '18500', '', ''),");
+        b.append("('FILETYPE', 'TXT', '22500', '', '')");
+        a.add(b.toString());
+
+        // 1286
+        b = new StringBuilder();
+        b.append("INSERT INTO `invariant` (`idname`, `value`, `sort`, `description`, `VeryShortDesc`) VALUES ");
+        b.append("('FILETYPE', 'PDF', '23500', '', ''),");
+        b.append("('FILETYPE', 'BIN', '24500', '', '')");
+        a.add(b.toString());
+
+        // Change datatype of testcasecountryproperties column `Length` to text
+        // 1287
+        b = new StringBuilder();
+        b.append("ALTER TABLE testcasecountryproperties ");
+        b.append("MODIFY COLUMN Length text");
+        a.add(b.toString());
+
+        // Clean keyPress value1 and value2 for IPA and APK applications.
+        // 1288
+        b = new StringBuilder();
+        b.append("UPDATE testcasestepaction a1 SET value2=value1, value1='', last_modified = now() ");
+        b.append("WHERE EXISTS ( select 1 from (");
+        b.append("select a.test, a.testcase, a.step, a.sequence, a.value1, a.value2, a.last_modified from testcasestepaction a");
+        b.append(" join testcase t on t.test=a.test and t.testcase=a.testcase");
+        b.append(" join application ap on ap.application=t.application");
+        b.append(" where ap.type in ('APK', 'IPA') and Action = 'keyPress'");
+        b.append(") as t where t.test=a1.test and t.testcase=a1.testcase and t.step=a1.step and t.sequence=a1.sequence);");
+        a.add(b.toString());
+
+        // Modify table testcaseexecutiondata in order to support cache entry.
+        // 1289
+        b = new StringBuilder();
+        b.append("ALTER TABLE testcaseexecutiondata ");
+        b.append("ADD COLUMN `System` varchar(45) NOT NULL DEFAULT ' ' AFTER `index`, ");
+        b.append("ADD COLUMN `Environment` varchar(45) NOT NULL DEFAULT ' ' AFTER `System`, ");
+        b.append("ADD COLUMN `Country` varchar(45) NOT NULL DEFAULT ' ' AFTER `Environment`, ");
+        b.append("ADD COLUMN `LengthInit` text AFTER `Value2`, ");
+        b.append("ADD COLUMN `JsonResult` text AFTER `value`, ");
+        b.append("ADD COLUMN `DataLib` varchar(45) NOT NULL DEFAULT ' ' AFTER `JsonResult`, ");
+        b.append("MODIFY Length TEXT");
+        a.add(b.toString());
+
+        // Modify table testcasestepexecution
+        // 1290
+        b = new StringBuilder();
+        b.append("ALTER TABLE `testcasestepexecution`  CHANGE COLUMN `ReturnMessage` `ReturnMessage` TEXT ;");
+        a.add(b.toString());
+
+        // Modify table testcaseexecutiondata adding cache flag
+        // 1291
+        b = new StringBuilder();
+        b.append("ALTER TABLE `testcaseexecutiondata` ADD COLUMN `FromCache` VARCHAR(45) NULL DEFAULT 'N' AFTER `JsonResult`,");
+        b.append(" ADD INDEX `IX_testcaseexecutiondata_03` (`System` ASC, `Environment` ASC, `Country` ASC, `FromCache` ASC, `Property` ASC, `Index` ASC, `Start` ASC);");
+        a.add(b.toString());
+
+        // Modify table testdatalib adding cacheExpire
+        // 1292
+        a.add("ALTER TABLE `testcasecountryproperties` ADD COLUMN `CacheExpire` INT NULL DEFAULT 0 AFTER `Nature`;");
+
+        // Drop deprecated tables.
+        // 1293-1294
+        a.add("DROP TABLE `abonnement`, `qualitynonconformities`, `qualitynonconformitiesimpact`;");
+        a.add("DROP TABLE `testbatterycontent`, `campaigncontent`, `testbattery`;");
+
+        // Adjust colum size for login information on execution table..
+        // 1295
+        b = new StringBuilder();
+        b.append("ALTER TABLE `testcaseexecution` ");
+        b.append("CHANGE COLUMN `Executor` `Executor` VARCHAR(255) NULL DEFAULT NULL ,");
+        b.append("CHANGE COLUMN `UsrCreated` `UsrCreated` VARCHAR(255) NOT NULL DEFAULT '' ,");
+        b.append("CHANGE COLUMN `UsrModif` `UsrModif` VARCHAR(255) NULL DEFAULT '' ;");
+        a.add(b.toString());
+
+        // Add the "executeJS" action
+        // 1296
+        a.add("INSERT INTO `invariant` (`idname`, `value`, `sort`, `description`, `VeryShortDesc`) VALUES ('ACTION', 'executeJS', '6550', 'Execute Javascript', 'Execute JS');");
+
+        // ADD private invariant CAMPAIGN_TCCRITERIA : "GROUP"
+        // 1297
+        b = new StringBuilder();
+        b.append("INSERT INTO `invariant` (`idname`, `value`, `sort`, `description`) VALUES ");
+        b.append("  ('CAMPAIGN_TCCRITERIA', 'GROUP', 100 , '')");
+        a.add(b.toString());
+
+        // Modify the size of column datalib on testcaseexecutiondata
+        // 1298
+        b = new StringBuilder();
+        b.append("ALTER TABLE testcaseexecutiondata ");
+        b.append("MODIFY COLUMN datalib VARCHAR(200)");
+        a.add(b.toString());
+
+        // Add Column testCaseVersion on testcase table
+        // 1299
+        b = new StringBuilder();
+        b.append("ALTER TABLE testcase ");
+        b.append("ADD COLUMN TestCaseVersion int(10) DEFAULT 0 AFTER `screensize`");
+        a.add(b.toString());
+
+        // Add Column testCaseVersion on testcaseexecution table
+        // 1300
+        b = new StringBuilder();
+        b.append("ALTER TABLE testcaseexecution ");
+        b.append("ADD COLUMN TestCaseVersion int(10) DEFAULT 0 AFTER `QueueID`");
+        a.add(b.toString());
+
+        // Adding robotDeclination on testcaseexecution table.
+        // 1301-1305
+        b = new StringBuilder();
+        b.append("ALTER TABLE `robot` ");
+        b.append("CHANGE COLUMN `host_user` `host_user` VARCHAR(255) NULL DEFAULT NULL AFTER `Port`,");
+        b.append("CHANGE COLUMN `host_password` `host_password` VARCHAR(255) NULL DEFAULT NULL AFTER `host_user`,");
+        b.append("ADD COLUMN `robotdecli` VARCHAR(100) NOT NULL DEFAULT '' AFTER `screensize`;");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("ALTER TABLE `testcaseexecution` ");
+        b.append("ADD COLUMN `System` VARCHAR(45) NOT NULL DEFAULT '' AFTER `ID`,");
+        b.append("ADD COLUMN `RobotDecli` VARCHAR(100) NOT NULL DEFAULT '' AFTER `Country`;");
+        a.add(b.toString());
+        b = new StringBuilder("UPDATE testcaseexecution SET robotdecli=browser;");
+        a.add(b.toString());
+        b = new StringBuilder();
+        b.append("ALTER TABLE `testcaseexecution` ");
+        b.append("DROP INDEX `IX_testcaseexecution_04` ,");
+        b.append("ADD INDEX `IX_testcaseexecution_04` (`Test` ASC, `TestCase` ASC, `Country` ASC, `RobotDecli` ASC, `Start` ASC, `ControlStatus` ASC),");
+        b.append("DROP INDEX `IX_testcaseexecution_05` ,");
+        b.append("ADD INDEX `IX_testcaseexecution_05` (`System` ASC),");
+        b.append("DROP INDEX `IX_testcaseexecution_06` ;");
+        a.add(b.toString());
+        b = new StringBuilder("INSERT INTO `invariant` (`idname`, `value`, `sort`, `description`, `VeryShortDesc`) VALUES ('CAMPAIGN_PARAMETER', 'ROBOT', '40', 'Robot used for execution.', 'Robot');");
+        a.add(b.toString());
+
+        // Cleaning invariant.
+        // 1306-1307
+        a.add("UPDATE invariant set gp1=null, gp2=null, gp3=null WHERE idname in ('CAMPAIGN_PARAMETER', 'ACTIONCONDITIONOPER', 'ACTION', 'APPLITYPE', 'APPSERVICECONTENTACT', 'APPSERVICEHEADERACT', 'CONTROLCONDITIONOPER', 'INVARIANTPRIVATE', 'OUTPUTFORMAT', 'STEPLOOP', 'STEPCONDITIONOPER', 'SRVTYPE', 'SRVMETHOD', 'TESTCASECONDITIONOPER', 'VERBOSE');");
+        a.add("DELETE FROM invariant WHERE idname in ('MNTACTIVE','NCONFSTATUS','PROBLEMCATEGORY','PROPERTYBAM','RESPONSABILITY','ROOTCAUSECATEGORY','SEVERITY');");
+
+        // New updated Documentation.
+        // 1308-1309
+        a.add("select 1 from DUAL;");
+        a.add("select 1 from DUAL;");
+
+        // Cleaned Actions.
+        // 1310-1312
+        a.add("DELETE FROM invariant where idname='ACTION' and value in ('getPageSource');");
+        a.add("UPDATE `invariant` SET `sort`='99999', `description`='[DEPRECATED] Remove differences from the given pattern' WHERE `idname`='ACTION' and`value`='removeDifference';");
+        a.add("UPDATE `invariant` SET `sort`='99999', `description`='[DEPRECATED] mouseOverAndWait' WHERE `idname`='ACTION' and`value`='mouseOverAndWait';");
+
+        // Cleaned Property type.
+        // 1313-1314
+        a.add("UPDATE `invariant` SET `value`='getFromSql' WHERE `idname`='PROPERTYTYPE' and`value`='executeSql';");
+        a.add("UPDATE testcasecountryproperties set type = 'getFromSql' where type = 'executeSql';");
+
+        // Adding new Element not present Condition.
+        // 1315
+        b = new StringBuilder();
+        b.append("INSERT INTO `invariant` (`idname`, `value`, `sort`, `description`) VALUES ");
+        b.append("('ACTIONCONDITIONOPER', 'ifElementNotPresent', 260, 'Only execute if Element is not present.')");
+        b.append(",('STEPCONDITIONOPER', 'ifElementNotPresent', 260, 'Only execute if Element is not present.')");
+        b.append(",('CONTROLCONDITIONOPER', 'ifElementNotPresent', 260, 'Only execute if Element is not present.')");
+        a.add(b.toString());
+
+        // Removed cascade delete between Service and Datalib and between application and service.
+        // 1316-1319
+        a.add("ALTER TABLE `appservice` DROP FOREIGN KEY `FK_appservice_01`;");
+        a.add("ALTER TABLE `appservice` ADD CONSTRAINT `FK_appservice_01` FOREIGN KEY (`Application`) REFERENCES `application` (`Application`) ON DELETE SET NULL ON UPDATE CASCADE;");
+        a.add("ALTER TABLE `testdatalib` DROP FOREIGN KEY `FK_testdatalib_01`;");
+        a.add("ALTER TABLE `testdatalib` ADD CONSTRAINT `FK_testdatalib_01` FOREIGN KEY (`Service`) REFERENCES `appservice` (`Service`) ON DELETE SET NULL ON UPDATE CASCADE;");
+
+        return a;
     }
 
 }
-

@@ -36,9 +36,10 @@ public class TestCaseCountryProperties {
     private String database;
     private String value1;
     private String value2;
-    private int length;
+    private String length;
     private int rowLimit;
     private String nature;
+    private int cacheExpire;
     private int retryNb;
     private int retryPeriod;
 
@@ -54,7 +55,7 @@ public class TestCaseCountryProperties {
      */
     public static final String TYPE_TEXT = "text";
     public static final String TYPE_GETFROMDATALIB = "getFromDataLib";
-    public static final String TYPE_EXECUTESQL = "executeSql";
+    public static final String TYPE_GETFROMSQL = "getFromSql";
     public static final String TYPE_GETFROMHTML = "getFromHtml";
     public static final String TYPE_GETFROMHTMLVISIBLE = "getFromHtmlVisible";
     public static final String TYPE_GETFROMJS = "getFromJS";
@@ -77,7 +78,14 @@ public class TestCaseCountryProperties {
     public static final String NATURE_NOTINUSE = "NOTINUSE";
     // Others
     public static final int MAX_PROPERTY_LENGTH = 160;
-    
+
+    public int getCacheExpire() {
+        return cacheExpire;
+    }
+
+    public void setCacheExpire(int cacheExpire) {
+        this.cacheExpire = cacheExpire;
+    }
 
     public List<TestCaseCountry> getTccList() {
         return tccList;
@@ -135,11 +143,11 @@ public class TestCaseCountryProperties {
         this.database = database;
     }
 
-    public int getLength() {
+    public String getLength() {
         return length;
     }
 
-    public void setLength(int length) {
+    public void setLength(String length) {
         this.length = length;
     }
 
@@ -250,7 +258,7 @@ public class TestCaseCountryProperties {
         hash = 83 * hash + (this.database != null ? this.database.hashCode() : 0);
         hash = 83 * hash + (this.value1 != null ? this.value1.hashCode() : 0);
         hash = 83 * hash + (this.value2 != null ? this.value2.hashCode() : 0);
-        hash = 83 * hash + this.length;
+        hash = 83 * hash + (this.length != null ? this.length.hashCode() : 0);
         hash = 83 * hash + this.rowLimit;
         hash = 83 * hash + this.retryNb;
         hash = 83 * hash + this.retryPeriod;

@@ -62,10 +62,6 @@ function initModalAppService(){
     $("[name='lbl_creator']").html(doc.getDocOnline("transversal", "UsrCreated"));
     $("[name='lbl_lastModified']").html(doc.getDocOnline("transversal", "DateModif"));
     $("[name='lbl_lastModifier']").html(doc.getDocOnline("transversal", "UsrModif"));
-    $("[name='lbl_datecreated']").html(doc.getDocOnline("transversal", "DateCreated"));
-    $("[name='lbl_usrcreated']").html(doc.getDocOnline("transversal", "UsrCreated"));
-    $("[name='lbl_datemodif']").html(doc.getDocOnline("transversal", "DateModif"));
-    $("[name='lbl_usrmodif']").html(doc.getDocOnline("transversal", "UsrModif"));	
 }
 
 /***
@@ -242,7 +238,7 @@ function confirmAppServiceModalHandler(mode,page) {
   	                        Tags[i].array.push(temp);
   	                    }
   	                }
-  	                $("div.step-action .content div.fieldRow div:nth-child(n+2) input").trigger("input");
+  	                $("."+temp).parent().find("input").trigger("input");
   	            }else{
   	            	var oTable = $("#soapLibrarysTable").dataTable();
   	                oTable.fnDraw(true);
@@ -360,9 +356,9 @@ function feedAppServiceModalData(service, modalId, mode, hasPermissionsUpdate) {
         $("[name='editSoapLibraryField']").html(doc.getDocOnline("page_appservice", "button_edit"));
         formEdit.find("#service").prop("value", service.service);
         formEdit.find("#usrcreated").prop("value", service.UsrCreated);
-        formEdit.find("#datecreated").prop("value", service.DateCreated);
+        formEdit.find("#datecreated").prop("value", getDate(service.DateCreated));
         formEdit.find("#usrmodif").prop("value", service.UsrModif);
-        formEdit.find("#datemodif").prop("value", service.DateModif);
+        formEdit.find("#datemodif").prop("value", getDate(service.DateModif));
     } else { // DUPLICATE or ADD
         formEdit.find("#usrcreated").prop("value", "");
         formEdit.find("#datecreated").prop("value", "");
@@ -462,7 +458,6 @@ function feedAppServiceModalDataContent(ContentList) {
     if(!isEmpty(ContentList)){
     	$.each(ContentList, function (idx, obj) {
             obj.toDelete = false;
-            console.debug(obj);
             appendContentRow(obj);
         });
     } 

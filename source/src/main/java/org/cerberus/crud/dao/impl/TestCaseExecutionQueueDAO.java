@@ -24,6 +24,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
@@ -542,8 +543,7 @@ public class TestCaseExecutionQueueDAO implements ITestCaseExecutionQueueDAO {
             searchSQL.append(" and ( 1=1 ");
             for (Map.Entry<String, List<String>> entry : individualSearch.entrySet()) {
                 searchSQL.append(" and ");
-                String key = "IFNULL(exq." + entry.getKey() + ",'')";
-                String q = SqlUtil.getInSQLClauseForPreparedStatement(key, entry.getValue());
+                String q = SqlUtil.getInSQLClauseForPreparedStatement(entry.getKey(), entry.getValue());
                 if (q == null || q == "") {
                     q = "(exq." + entry.getKey() + " IS NULL OR " + entry.getKey() + " = '')";
                 }
@@ -663,6 +663,68 @@ public class TestCaseExecutionQueueDAO implements ITestCaseExecutionQueueDAO {
         response.setResultMessage(msg);
         response.setDataList(objectList);
         return response;
+    }
+
+    @Override
+    public int getNbEntryToGo(long id, int prio) {
+        AnswerItem<TestCaseExecutionQueue> ans = new AnswerItem<>();
+        TestCaseExecutionQueue result = null;
+        final String query = "SELECT count(*)  FROM testcaseexecutionqueue WHERE State = 'QUEUED' and (ID < ? and Priority <= ?);";
+        MessageEvent msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_UNEXPECTED);
+        msg.setDescription(msg.getDescription().replace("%DESCRIPTION%", ""));
+
+        // Debug message on SQL.
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("SQL : " + query);
+        }
+        Connection connection = this.databaseSpring.connect();
+        try {
+            PreparedStatement preStat = connection.prepareStatement(query);
+            try {
+                int i = 1;
+                preStat.setLong(i++, id);
+                preStat.setInt(i++, prio);
+                ResultSet resultSet = preStat.executeQuery();
+                try {
+                    if (resultSet.first()) {
+                        msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_OK);
+                        msg.setDescription(msg.getDescription().replace("%ITEM%", OBJECT_NAME).replace("%OPERATION%", "SELECT"));
+                        return resultSet.getInt(1);
+                    } else {
+                        LOG.error("No record found : " + query);
+                        msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_NO_DATA_FOUND);
+                    }
+                } catch (SQLException exception) {
+                    LOG.error("Unable to execute query : " + exception.toString());
+                    msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_UNEXPECTED);
+                    msg.setDescription(msg.getDescription().replace("%DESCRIPTION%", exception.toString()));
+                } finally {
+                    resultSet.close();
+                }
+            } catch (SQLException exception) {
+                LOG.error("Unable to execute query : " + exception.toString());
+                msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_UNEXPECTED);
+                msg.setDescription(msg.getDescription().replace("%DESCRIPTION%", exception.toString()));
+            } finally {
+                preStat.close();
+            }
+        } catch (SQLException exception) {
+            LOG.error("Unable to execute query : " + exception.toString());
+            msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_UNEXPECTED);
+            msg.setDescription(msg.getDescription().replace("%DESCRIPTION%", exception.toString()));
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException exception) {
+                LOG.warn("Unable to close connection : " + exception.toString());
+            }
+        }
+
+        //sets the message
+        ans.setResultMessage(msg);
+        return 999999;
     }
 
     @Override
@@ -899,7 +961,8 @@ public class TestCaseExecutionQueueDAO implements ITestCaseExecutionQueueDAO {
             LOG.debug("SQL : " + query.toString());
         }
         try (Connection connection = databaseSpring.connect();
-                PreparedStatement preStat = connection.prepareStatement(query.toString())) {
+                PreparedStatement preStat = connection.prepareStatement(query.toString());
+        		Statement stm = connection.createStatement();) {
 
             int i = 1;
             if (!StringUtil.isNullOrEmpty(searchTerm)) {
@@ -916,33 +979,38 @@ public class TestCaseExecutionQueueDAO implements ITestCaseExecutionQueueDAO {
                 preStat.setString(i++, individualColumnSearchValue);
             }
 
-            ResultSet resultSet = preStat.executeQuery();
+            try(ResultSet resultSet = preStat.executeQuery();
+            		ResultSet rowSet = stm.executeQuery("SELECT FOUND_ROWS()");){
+            	//gets the data
+                while (resultSet.next()) {
+                    distinctValues.add(resultSet.getString("distinctValues") == null ? "" : resultSet.getString("distinctValues"));
+                }
 
-            //gets the data
-            while (resultSet.next()) {
-                distinctValues.add(resultSet.getString("distinctValues") == null ? "" : resultSet.getString("distinctValues"));
-            }
+                //get the total number of rows
+                
+                int nrTotalRows = 0;
 
-            //get the total number of rows
-            resultSet = preStat.executeQuery("SELECT FOUND_ROWS()");
-            int nrTotalRows = 0;
+                if (rowSet != null && rowSet.next()) {
+                    nrTotalRows = rowSet.getInt(1);
+                }
 
-            if (resultSet != null && resultSet.next()) {
-                nrTotalRows = resultSet.getInt(1);
-            }
-
-            if (distinctValues.size() >= MAX_ROW_SELECTED) { // Result of SQl was limited by MAX_ROW_SELECTED constrain. That means that we may miss some lines in the resultList.
-                LOG.error("Partial Result in the query.");
-                msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_WARNING_PARTIAL_RESULT);
-                msg.setDescription(msg.getDescription().replace("%DESCRIPTION%", "Maximum row reached : " + MAX_ROW_SELECTED));
-                answer = new AnswerList(distinctValues, nrTotalRows);
-            } else if (distinctValues.size() <= 0) {
-                msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_NO_DATA_FOUND);
-                answer = new AnswerList(distinctValues, nrTotalRows);
-            } else {
-                msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_OK);
-                msg.setDescription(msg.getDescription().replace("%ITEM%", OBJECT_NAME).replace("%OPERATION%", "SELECT"));
-                answer = new AnswerList(distinctValues, nrTotalRows);
+                if (distinctValues.size() >= MAX_ROW_SELECTED) { // Result of SQl was limited by MAX_ROW_SELECTED constrain. That means that we may miss some lines in the resultList.
+                    LOG.error("Partial Result in the query.");
+                    msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_WARNING_PARTIAL_RESULT);
+                    msg.setDescription(msg.getDescription().replace("%DESCRIPTION%", "Maximum row reached : " + MAX_ROW_SELECTED));
+                    answer = new AnswerList(distinctValues, nrTotalRows);
+                } else if (distinctValues.size() <= 0) {
+                    msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_NO_DATA_FOUND);
+                    answer = new AnswerList(distinctValues, nrTotalRows);
+                } else {
+                    msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_OK);
+                    msg.setDescription(msg.getDescription().replace("%ITEM%", OBJECT_NAME).replace("%OPERATION%", "SELECT"));
+                    answer = new AnswerList(distinctValues, nrTotalRows);
+                }
+            }catch (SQLException e) {
+                LOG.warn("Unable to execute query : " + e.toString());
+                msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_UNEXPECTED).resolveDescription("DESCRIPTION",
+                        e.toString());
             }
         } catch (Exception e) {
             LOG.warn("Unable to execute query : " + e.toString());
@@ -1343,15 +1411,18 @@ public class TestCaseExecutionQueueDAO implements ITestCaseExecutionQueueDAO {
                 + "INNER JOIN `" + TABLE_APPLICATION + "` app ON (tec.`Application` = app.`Application`) "
                 + "WHERE `" + COLUMN_ID + "` = ?";
 
-        try (
-                Connection connection = this.databaseSpring.connect();
+        try (Connection connection = this.databaseSpring.connect();
                 PreparedStatement selectStatement = connection.prepareStatement(query);) {
             selectStatement.setLong(1, id);
-            ResultSet result = selectStatement.executeQuery();
-            if (!result.next()) {
-                throw new CerberusException(new MessageGeneral(MessageGeneralEnum.NO_DATA_FOUND));
-            }
-            return loadWithDependenciesFromResultSet(result);
+            try(ResultSet result = selectStatement.executeQuery();){
+            	if (!result.next()) {
+                    throw new CerberusException(new MessageGeneral(MessageGeneralEnum.NO_DATA_FOUND));
+                }
+                return loadWithDependenciesFromResultSet(result);
+            }catch (SQLException exception) {
+                LOG.error("Unable to execute query : " + exception.toString());
+                throw new CerberusException(new MessageGeneral(MessageGeneralEnum.DATA_OPERATION_ERROR));
+            } 
         } catch (SQLException | FactoryCreationException e) {
             LOG.warn("Unable to find test case execution in queue " + id, e);
             throw new CerberusException(new MessageGeneral(MessageGeneralEnum.DATA_OPERATION_ERROR));
@@ -1359,7 +1430,8 @@ public class TestCaseExecutionQueueDAO implements ITestCaseExecutionQueueDAO {
     }
 
     @Override
-    public Answer create(TestCaseExecutionQueue object) {
+    public AnswerItem<TestCaseExecutionQueue> create(TestCaseExecutionQueue object) {
+        TestCaseExecutionQueue newObject = object;
         MessageEvent msg = null;
         StringBuilder query = new StringBuilder();
         query.append("INSERT INTO `" + TABLE + "` (`" + COLUMN_TEST + "`, `" + COLUMN_TEST_CASE + "`, `" + COLUMN_COUNTRY + "`, `" + COLUMN_ENVIRONMENT + "`, `" + COLUMN_ROBOT
@@ -1379,77 +1451,75 @@ public class TestCaseExecutionQueueDAO implements ITestCaseExecutionQueueDAO {
             LOG.debug("SQL.param.comment : " + object.getComment());
             LOG.debug("SQL.param.state : " + object.getState());
         }
-        Connection connection = this.databaseSpring.connect();
-        try {
-            PreparedStatement preStat = connection.prepareStatement(query.toString());
-            try {
-                int i = 1;
-                preStat.setString(i++, object.getTest());
-                preStat.setString(i++, object.getTestCase());
-                preStat.setString(i++, object.getCountry());
-                preStat.setString(i++, object.getEnvironment());
-                preStat.setString(i++, object.getRobot());
-                preStat.setString(i++, object.getRobotIP());
-                preStat.setString(i++, object.getRobotPort());
-                preStat.setString(i++, object.getBrowser());
-                preStat.setString(i++, object.getBrowserVersion());
-                preStat.setString(i++, object.getPlatform());
-                preStat.setString(i++, object.getScreenSize());
-                preStat.setInt(i++, object.getManualURL());
-                preStat.setString(i++, object.getManualHost());
-                preStat.setString(i++, object.getManualContextRoot());
-                preStat.setString(i++, object.getManualLoginRelativeURL());
-                preStat.setString(i++, object.getManualEnvData());
-                preStat.setString(i++, object.getTag());
-                preStat.setInt(i++, object.getScreenshot());
-                preStat.setInt(i++, object.getVerbose());
-                preStat.setString(i++, object.getTimeout());
-                preStat.setInt(i++, object.getPageSource());
-                preStat.setInt(i++, object.getSeleniumLog());
-                preStat.setInt(i++, object.getRetries());
-                preStat.setString(i++, object.getManualExecution());
-                String user = object.getUsrCreated() == null ? "" : object.getUsrCreated();
-                preStat.setString(i++, user);
-                if (object.getState() == null) {
-                    preStat.setString(i++, object.getState().WAITING.name());
-                } else {
-                    preStat.setString(i++, object.getState().name());
-                }
-                preStat.setString(i++, object.getComment());
-                preStat.setString(i++, object.getDebugFlag());
-                preStat.setInt(i++, object.getPriority());
+        
+        try(Connection connection = this.databaseSpring.connect();
+        		PreparedStatement preStat = connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);) {
+            
+            int i = 1;
+            preStat.setString(i++, object.getTest());
+            preStat.setString(i++, object.getTestCase());
+            preStat.setString(i++, object.getCountry());
+            preStat.setString(i++, object.getEnvironment());
+            preStat.setString(i++, object.getRobot());
+            preStat.setString(i++, object.getRobotIP());
+            preStat.setString(i++, object.getRobotPort());
+            preStat.setString(i++, object.getBrowser());
+            preStat.setString(i++, object.getBrowserVersion());
+            preStat.setString(i++, object.getPlatform());
+            preStat.setString(i++, object.getScreenSize());
+            preStat.setInt(i++, object.getManualURL());
+            preStat.setString(i++, object.getManualHost());
+            preStat.setString(i++, object.getManualContextRoot());
+            preStat.setString(i++, object.getManualLoginRelativeURL());
+            preStat.setString(i++, object.getManualEnvData());
+            preStat.setString(i++, object.getTag());
+            preStat.setInt(i++, object.getScreenshot());
+            preStat.setInt(i++, object.getVerbose());
+            preStat.setString(i++, object.getTimeout());
+            preStat.setInt(i++, object.getPageSource());
+            preStat.setInt(i++, object.getSeleniumLog());
+            preStat.setInt(i++, object.getRetries());
+            preStat.setString(i++, object.getManualExecution());
+            String user = object.getUsrCreated() == null ? "" : object.getUsrCreated();
+            preStat.setString(i++, user);
+            if (object.getState() == null) {
+                preStat.setString(i++, object.getState().WAITING.name());
+            } else {
+                preStat.setString(i++, object.getState().name());
+            }
+            preStat.setString(i++, object.getComment());
+            preStat.setString(i++, object.getDebugFlag());
+            preStat.setInt(i++, object.getPriority());
 
-                preStat.executeUpdate();
+            preStat.executeUpdate();
+
+            try (ResultSet resultSet = preStat.getGeneratedKeys()) {
+                if (resultSet.first()) {
+                    newObject.setId(resultSet.getInt(1));
+                }
                 msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_OK);
                 msg.setDescription(msg.getDescription().replace("%ITEM%", OBJECT_NAME).replace("%OPERATION%", "INSERT"));
-
             } catch (SQLException exception) {
                 LOG.error("Unable to execute query : " + exception.toString());
-
-                if (exception.getSQLState().equals(SQL_DUPLICATED_CODE)) { //23000 is the sql state for duplicate entries
-                    msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_DUPLICATE);
-                    msg.setDescription(msg.getDescription().replace("%ITEM%", OBJECT_NAME).replace("%OPERATION%", "INSERT").replace("%REASON%", exception.toString()));
-                } else {
-                    msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_UNEXPECTED);
-                    msg.setDescription(msg.getDescription().replace("%DESCRIPTION%", exception.toString()));
-                }
-            } finally {
-                preStat.close();
+                msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_UNEXPECTED);
+                msg.setDescription(msg.getDescription().replace("%DESCRIPTION%", exception.toString()));
             }
+
+            msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_OK);
+            msg.setDescription(msg.getDescription().replace("%ITEM%", OBJECT_NAME).replace("%OPERATION%", "INSERT"));
+
         } catch (SQLException exception) {
             LOG.error("Unable to execute query : " + exception.toString());
-            msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_UNEXPECTED);
-            msg.setDescription(msg.getDescription().replace("%DESCRIPTION%", exception.toString()));
-        } finally {
-            try {
-                if (connection != null) {
-                    connection.close();
-                }
-            } catch (SQLException exception) {
-                LOG.error("Unable to close connection : " + exception.toString());
+
+            if (exception.getSQLState().equals(SQL_DUPLICATED_CODE)) { //23000 is the sql state for duplicate entries
+                msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_DUPLICATE);
+                msg.setDescription(msg.getDescription().replace("%ITEM%", OBJECT_NAME).replace("%OPERATION%", "INSERT").replace("%REASON%", exception.toString()));
+            } else {
+                msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_UNEXPECTED);
+                msg.setDescription(msg.getDescription().replace("%DESCRIPTION%", exception.toString()));
             }
-        }
-        return new Answer(msg);
+        } 
+        return new AnswerItem(newObject, msg);
     }
 
     @Override
@@ -1757,8 +1827,7 @@ public class TestCaseExecutionQueueDAO implements ITestCaseExecutionQueueDAO {
             LOG.debug("SQL.param.id : " + id);
         }
 
-        try (
-                Connection connection = databaseSpring.connect();
+        try (Connection connection = databaseSpring.connect();
                 PreparedStatement updateStateAndCommentStatement = connection.prepareStatement(query)) {
 
             updateStateAndCommentStatement.setString(1, comment);

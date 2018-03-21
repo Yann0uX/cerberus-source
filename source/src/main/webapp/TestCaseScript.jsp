@@ -33,8 +33,8 @@
         <script type="text/javascript" src="js/transversalobject/AppService.js"></script>
         <script type="text/javascript" src="js/pages/TestCaseScript.js"></script>
         <script type="text/javascript" src="js/transversalobject/DataLib.js"></script>
-        <script type="text/javascript" src="js/pages/TestDataLib.js"></script>
         <script type="text/javascript" src="js/transversalobject/AppService.js"></script>
+        <script type="text/javascript" src="js/transversalobject/TestCaseExecutionQueue.js"></script>
         <link rel="stylesheet" type="text/css" href="css/pages/TestCaseScript.css">
     </head>
     <body>
@@ -49,7 +49,8 @@
             <%@ include file="include/transversalobject/TestDataLib.html"%>              
             <%@ include file="include/transversalobject/AppService.html"%> 
             <%@ include file="include/transversalobject/Property.html"%> 
-            
+            <%@ include file="include/transversalobject/TestCaseExecutionQueue.html"%>
+
 
             <h1 class="page-title-line">Test Case Script</h1>
             <div class="panel panel-default" style="margin-top: 10px;">
@@ -58,40 +59,60 @@
                         <div class="panel-heading" id="testCaseTitle">
                             <div class="" style="width:100%">
                                 <div class="col-lg-4" style="padding: 0px;">
-                                    <div class="testTestCase" style="margin-top:4px; margin-bottom: 4px;"><select id="test"></select></div>
+                                    <div class="testTestCase" style="margin-top:4px; margin-bottom: 4px;">
+                                        <select id="test"></select>
+                                    </div>
+                                    <select id="testCaseSelect" style="display:none;"></select>
                                 </div>
                                 <div class="col-lg-8" style="padding: 0px;">
                                     <div id="TestCaseButton" style="display:none;">
-                                        <div class="btn-group pull-right">
-                                            <button class="btn btn-default" id="saveScript" disabled style="margin-left: 1px;"><span class="glyphicon glyphicon-save"></span> Save</button>
-                                            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                <span class="caret"></span>
-                                                <span class="sr-only">Toggle Dropdown</span>
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                <li><a href="#" id="saveScriptAs"><span class="glyphicon glyphicon-floppy-disk"></span> Save As</a></li>
-                                            </ul>
+
+                                        <div class="btn-group pull-right" role="group" aria-label="Button group with nested dropdown" style="margin-top: 10px;">
+
+                                            <div class="btn-group ">
+                                                <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    Go To <span class="caret"></span>
+                                                </button>
+                                                <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                                                    <a><button class="btn btn-default pull-left" id="seeLastExecUniq" style="margin-left: 5px; margin-right: 5px;"><span class="glyphicon glyphicon-saved"></span> Last Execution</button></a>
+                                                    <a><button class="btn btn-default pull-left" id="seeLastExec" style="margin-left: 5px; margin-right: 5px;"><span class="glyphicon glyphicon-list"></span> Last Executions</button></a>
+                                                    <a><button class="btn btn-default pull-left" id="seeTest" style="margin-left: 5px; margin-right: 5px;"><span class="glyphicon glyphicon-list"></span> Test</button></a>
+                                                    <a><button class="btn btn-default pull-left" id="seeLogs" style="margin-left: 5px; margin-right: 5px;"><span class="glyphicon glyphicon-list"></span> Logs</button></a>
+                                                </div>                                    
+                                            </div>
+
+                                            <div class="btn-group">
+                                                <button id="btnGroupDrop2" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    Run <span class="caret"></span>
+                                                </button>
+                                                <div class="dropdown-menu" aria-labelledby="btnGroupDrop2">
+                                                    <a><button class="btn btn-default pull-left" id="runTestCase" style="margin-left: 5px; margin-left: 5px;" data-toggle="tooltip" ><span class="glyphicon glyphicon-play"></span>Run</button></a>
+                                                    <a><button class="btn btn-default pull-left" id="rerunTestCase" style="margin-left: 5px; margin-left: 5px;"><span class="glyphicon glyphicon-forward"></span>ReRun</button></a>
+                                                    <a><button class="btn btn-default pull-left" id="rerunFromQueue" style="margin-left: 5px; margin-left: 5px;"><span class="glyphicon glyphicon-forward"></span>From Queue</button></a>
+                                                </div>
+                                            </div>
+
+                                            <div class="btn-group ">
+                                                <a><button class="btn btn-default pull-right" id="editTcInfo">Edit Test Case Header</button></a>
+                                            </div>
+
+                                            <div class="btn-group ">
+                                                <button class="btn btn-default" id="saveScript" disabled style="margin-left: 1px;"><span class="glyphicon glyphicon-save"></span> Save</button>
+                                                <button id="btnGroupDrop3" type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    <span class="caret"></span>
+                                                    <span class="sr-only">Toggle Dropdown</span>
+                                                </button>
+                                                <div class="dropdown-menu"  aria-labelledby="btnGroupDrop3">
+                                                    <a><button class="btn btn-default pull-left" id="saveScriptAs" style="margin-left: 5px; margin-left: 5px;" ><span class="glyphicon glyphicon-floppy-disk"></span>Save As</button></a>
+                                                    <a><button class="btn btn-default pull-left" id="deleteTestCase" style="margin-left: 5px; margin-left: 5px;" disabled><span class="glyphicon glyphicon-trash"></span>Delete</button></a>
+                                                </div>
+                                            </div>
+
                                         </div>
-                                        <div class="btn-group pull-right">
-                                            <a href="#" class="btn btn-default" id="runTestCase" data-toggle="tooltip" style="margin-left: 1px;"><span class="glyphicon glyphicon-play"></span> Run</a>
-                                            <a type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                <span class="caret"></span>
-                                                <span class="sr-only">Toggle Dropdown</span>
-                                            </a>
-                                            <ul class="dropdown-menu">
-                                                <li><a href="#"><button class="btn btn-default pull-right" id="rerunTestCase" style="margin-left: 0px; margin-right: 0px;"><span class="glyphicon glyphicon-forward"></span> ReRun</button></a></li>
-                                            </ul>
-                                        </div>
-                                        <a><button class="btn btn-default pull-right" id="seeLastExec" style="margin-left: 1px; margin-right: 1px;"><span class="glyphicon glyphicon-fast-backward"></span> Last Executions</button></a>
-                                        <a><button class="btn btn-default pull-right" id="seeLogs" style="margin-left: 1px; margin-right: 1px;"><span class="glyphicon glyphicon-book"></span> Logs</button></a>
-                                        <button class="btn btn-default pull-right" id="deleteTestCase" disabled> Delete Test Case</button>
-                                        <button class="btn btn-default pull-right" id="editTcInfo">Edit Test Case Header</button>
-                                        <div class="side-item pull-right"></div>
 
                                     </div>
                                 </div>
                                 <div class="clearfix"></div>
-                                <select id="testCaseSelect" style="display:none;"></select>
                             </div>
                         </div>
                         <div style="height:40px; background-color: white">
@@ -100,35 +121,35 @@
                                 <li><a data-toggle="tab" href="#tabProperties" id="editTabProperties" name="tabProperties">Properties</a></li>
                                 <li><a data-toggle="tab" href="#tabInheritedProperties" id="editTabInheritedProperties" name="tabInheritedProperties">InheritedProperties</a></li>
                                 <li><a data-toggle="tab" href="#tabSchema" id="editTabSchema" name="tabSchema">Schema</a></li>
-                          </ul>
+                            </ul>
                         </div>
                     </div>
                 </div>
                 <div class="panel-body" id="tcBody" style="display:none;">
 
-				<div class="modal fade"  id="modalProperty" tabindex="-1" role="dialog">
-					<div class="modal-dialog" role="document">
-						<div class="modal-content">
-							<div class="modal-header">
-								<h5 class="modal-title">Property</h5>
-								<button type="button" class="close" data-dismiss="modal"
-									aria-label="Close">
-									<span aria-hidden="true">&times;</span>
-								</button>
-							</div>
-							<div class="modal-body">
-								<div id="firstRowProperty"></div>
-								<div id="secondRowProperty"></div>
-							</div>
-							<div class="modal-footer">
-								<button type="button" class="btn btn-secondary"
-									data-dismiss="modal">Close</button>
-							</div>
-						</div>
-					</div>
-				</div>
+                    <div class="modal fade"  id="modalProperty" tabindex="-1" role="dialog">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Property</h5>
+                                    <button type="button" class="close" data-dismiss="modal"
+                                            aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <div id="firstRowProperty"></div>
+                                    <div id="secondRowProperty"></div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                            data-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-				<div class="tab-content">
+                    <div class="tab-content">
                         <div class="center marginTop25 tab-pane fade in active" id="tabSteps">
                             <nav class="col-lg-3" id="nav-execution" style="z-index:1;">
                                 <div id="list-wrapper" style="top:107px;">
@@ -203,8 +224,8 @@
                         </div>
 
                         <div class="center marginTop25 tab-pane fade" id="tabProperties">
-                            
-                            
+
+
                             <nav class="col-lg-3" id="nav-property" style="z-index:1;">
                                 <div id="list-wrapper-prop" style="top:107px;">
                                     <div id="propListWrapper">

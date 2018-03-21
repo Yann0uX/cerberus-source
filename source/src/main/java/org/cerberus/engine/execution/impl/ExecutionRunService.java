@@ -75,6 +75,7 @@ import org.cerberus.enums.MessageGeneralEnum;
 import org.cerberus.exception.CerberusEventException;
 import org.cerberus.exception.CerberusException;
 import org.cerberus.service.email.IEmailService;
+import org.cerberus.service.sikuli.ISikuliService;
 import org.cerberus.util.StringUtil;
 import org.cerberus.util.answer.AnswerItem;
 import org.cerberus.util.answer.AnswerList;
@@ -97,7 +98,9 @@ public class ExecutionRunService implements IExecutionRunService {
     private static final Logger LOG = LogManager.getLogger(ExecutionRunService.class);
 
     @Autowired
-    private ISeleniumServerService serverService;
+    private ISikuliService sikuliService;
+    @Autowired
+    private ISeleniumServerService seleniumServerService;
     @Autowired
     private IActionService actionService;
     @Autowired
@@ -206,7 +209,7 @@ public class ExecutionRunService implements IExecutionRunService {
             LOG.debug(logPrefix + "Getting Selenium capabitities for GUI applications.");
             if (tCExecution.getApplicationObj().getType().equalsIgnoreCase(Application.TYPE_GUI)) {
                 try {
-                    Capabilities caps = this.serverService.getUsedCapabilities(tCExecution.getSession());
+                    Capabilities caps = this.seleniumServerService.getUsedCapabilities(tCExecution.getSession());
                     tCExecution.setBrowserFullVersion(caps.getBrowserName() + " " + caps.getVersion() + " " + caps.getPlatform().toString());
                     tCExecution.setVersion(caps.getVersion());
                     tCExecution.setPlatform(caps.getPlatform().toString());
@@ -221,8 +224,12 @@ public class ExecutionRunService implements IExecutionRunService {
                 tCExecution.setBrowser("");
                 tCExecution.setVersion("");
                 tCExecution.setPlatform("");
+                tCExecution.setRobotDecli("");
                 LOG.debug(logPrefix + "No Selenium capabitities loaded because application not GUI : " + tCExecution.getApplicationObj().getType());
             }
+            tCExecution.setRobotDecli(tCExecution.getRobotDecli().replace("%BROWSER%", tCExecution.getBrowser()));
+            tCExecution.setRobotDecli(tCExecution.getRobotDecli().replace("%BROWSERVERSION%", tCExecution.getVersion()));
+            tCExecution.setRobotDecli(tCExecution.getRobotDecli().replace("%PLATFORM%", tCExecution.getPlatform()));
 
             /**
              * Load PreTestCase information and set PreTCase to the
@@ -412,6 +419,7 @@ public class ExecutionRunService implements IExecutionRunService {
                                         testCaseStepExecution.setStepResultMessage(answerDecode.getResultMessage().resolveDescription("FIELD", "Step Condition Value1"));
                                         testCaseStepExecution.setReturnMessage(answerDecode.getResultMessage().resolveDescription("FIELD", "Step Condition Value1").getDescription());
                                         testCaseStepExecution.setReturnCode(answerDecode.getResultMessage().getCodeString());
+                                        testCaseStepExecution.setStopExecution(answerDecode.getResultMessage().isStopTest());
                                         testCaseStepExecution.setEnd(new Date().getTime());
                                         LOG.debug("Step interupted due to decode 'Step Condition Value1' Error.");
                                         conditionStepDecodeError = true;
@@ -428,6 +436,7 @@ public class ExecutionRunService implements IExecutionRunService {
                                             testCaseStepExecution.setStepResultMessage(answerDecode.getResultMessage().resolveDescription("FIELD", "Step Condition Value2"));
                                             testCaseStepExecution.setReturnMessage(answerDecode.getResultMessage().resolveDescription("FIELD", "Step Condition Value2").getDescription());
                                             testCaseStepExecution.setReturnCode(answerDecode.getResultMessage().getCodeString());
+                                            testCaseStepExecution.setStopExecution(answerDecode.getResultMessage().isStopTest());
                                             testCaseStepExecution.setEnd(new Date().getTime());
                                             LOG.debug("Step interupted due to decode 'Step Condition Value2' Error.");
                                             conditionStepDecodeError = true;
@@ -854,6 +863,7 @@ public class ExecutionRunService implements IExecutionRunService {
                         // If anything wrong with the decode --> we stop here with decode message in the action result.
                         testCaseStepActionExecution.setActionResultMessage(answerDecode.getResultMessage().resolveDescription("FIELD", "Action Condition Value1"));
                         testCaseStepActionExecution.setExecutionResultMessage(new MessageGeneral(answerDecode.getResultMessage().getMessage()));
+                        testCaseStepActionExecution.setStopExecution(answerDecode.getResultMessage().isStopTest());
                         testCaseStepActionExecution.setEnd(new Date().getTime());
                         LOG.debug("Action interupted due to decode 'Action Condition Value1' Error.");
                         conditionDecodeError = true;
@@ -870,6 +880,7 @@ public class ExecutionRunService implements IExecutionRunService {
                         // If anything wrong with the decode --> we stop here with decode message in the action result.
                         testCaseStepActionExecution.setActionResultMessage(answerDecode.getResultMessage().resolveDescription("FIELD", "Action Condition Value2"));
                         testCaseStepActionExecution.setExecutionResultMessage(new MessageGeneral(answerDecode.getResultMessage().getMessage()));
+                        testCaseStepActionExecution.setStopExecution(answerDecode.getResultMessage().isStopTest());
                         testCaseStepActionExecution.setEnd(new Date().getTime());
                         LOG.debug("Action interupted due to decode 'Action Condition Value2' Error.");
                         conditionDecodeError = true;
@@ -969,8 +980,12 @@ public class ExecutionRunService implements IExecutionRunService {
                 testCaseStepActionExecution.setEnd(new Date().getTime());
                 testCaseStepExecution.setExecutionResultMessage(testCaseStepActionExecution.getExecutionResultMessage());
                 testCaseStepExecution.setStepResultMessage(testCaseStepActionExecution.getActionResultMessage());
+                testCaseStepExecution.setStopExecution(testCaseStepActionExecution.isStopExecution());
                 this.testCaseStepActionExecutionService.updateTestCaseStepActionExecution(testCaseStepActionExecution);
                 LOG.debug("Registered Action");
+                if (testCaseStepActionExecution.isStopExecution()) {
+                    break;
+                }
 
             }
 
@@ -1080,6 +1095,7 @@ public class ExecutionRunService implements IExecutionRunService {
                         // If anything wrong with the decode --> we stop here with decode message in the action result.
                         testCaseStepActionControlExecution.setControlResultMessage(answerDecode.getResultMessage().resolveDescription("FIELD", "Control Condition Value1"));
                         testCaseStepActionControlExecution.setExecutionResultMessage(new MessageGeneral(answerDecode.getResultMessage().getMessage()));
+                        testCaseStepActionControlExecution.setStopExecution(answerDecode.getResultMessage().isStopTest());
                         testCaseStepActionControlExecution.setEnd(new Date().getTime());
                         LOG.debug("Control interupted due to decode 'Control Condition Value1' Error.");
                         conditionDecodeError = true;
@@ -1096,6 +1112,7 @@ public class ExecutionRunService implements IExecutionRunService {
                         // If anything wrong with the decode --> we stop here with decode message in the action result.
                         testCaseStepActionControlExecution.setControlResultMessage(answerDecode.getResultMessage().resolveDescription("FIELD", "Control Condition Value2"));
                         testCaseStepActionControlExecution.setExecutionResultMessage(new MessageGeneral(answerDecode.getResultMessage().getMessage()));
+                        testCaseStepActionControlExecution.setStopExecution(answerDecode.getResultMessage().isStopTest());
                         testCaseStepActionControlExecution.setEnd(new Date().getTime());
                         LOG.debug("Control interupted due to decode 'Control Condition Value2' Error.");
                         conditionDecodeError = true;
@@ -1280,12 +1297,20 @@ public class ExecutionRunService implements IExecutionRunService {
                 || tCExecution.getApplicationObj().getType().equalsIgnoreCase(Application.TYPE_APK)
                 || tCExecution.getApplicationObj().getType().equalsIgnoreCase(Application.TYPE_IPA)) {
             try {
-                this.serverService.stopServer(tCExecution.getSession());
+                this.seleniumServerService.stopServer(tCExecution.getSession());
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Stop server for execution " + tCExecution.getId());
                 }
             } catch (WebDriverException exception) {
                 LOG.warn("Selenium didn't manage to close connection for execution " + tCExecution.getId() + " due to " + exception.toString());
+            }
+        }
+        if (tCExecution.getApplicationObj().getType().equalsIgnoreCase(Application.TYPE_FAT)) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Stop Sikuli server for execution " + tCExecution.getId() + " closing application " + tCExecution.getCountryEnvironmentParameters().getIp());
+            }
+            if (!StringUtil.isNullOrEmpty(tCExecution.getCountryEnvironmentParameters().getIp())) {
+                this.sikuliService.doSikuliActionCloseApp(tCExecution.getSession(), tCExecution.getCountryEnvironmentParameters().getIp());
             }
         }
 

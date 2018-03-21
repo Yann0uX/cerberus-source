@@ -108,6 +108,7 @@ function initModalTestCase() {
     $("[name='lbl_usrcreated']").html(doc.getDocOnline("transversal", "UsrCreated"));
     $("[name='lbl_datemodif']").html(doc.getDocOnline("transversal", "DateModif"));
     $("[name='lbl_usrmodif']").html(doc.getDocOnline("transversal", "UsrModif"));
+    $("[name='testcaseversionField']").html(doc.getDocOnline("testcase", "TestCaseVersion"));
 
     displayInvariantList("group", "GROUP", false);
     displayInvariantList("status", "TCSTATUS", false);
@@ -120,6 +121,11 @@ function initModalTestCase() {
     displayInvariantList("activeUAT", "TCACTIVE", false);
     displayInvariantList("activeProd", "TCACTIVE", false);
     appendProjectList();
+    
+    $('[data-toggle="popover"]').popover({
+        'placement': 'auto',
+        'container': 'body'}
+    );
 
     var availableUserAgent = getInvariantArray("USERAGENT", false);
     $('#editTestCaseModal').find("#userAgent").autocomplete({
@@ -349,7 +355,7 @@ function confirmTestCaseModalHandler(mode) {
     }
 
     // Getting Data from Label List
-    var table2 = $("input[name=labelid]:checked");
+    var table2 = $("#editTestCaseModal input[name=labelid]:checked");
     var table_label = [];
     for (var i = 0; i < table2.length; i++) {
         var newLabel1 = {
@@ -367,7 +373,8 @@ function confirmTestCaseModalHandler(mode) {
         url: myServlet,
         async: true,
         method: "POST",
-        data: {test: data.test,
+        data: {
+            test: data.test,
             testCase: data.testCase,
             originalTest: data.originalTest,
             originalTestCase: data.originalTestCase,
@@ -455,13 +462,13 @@ function feedTestCaseModal(test, testCase, modalId, mode) {
     clearResponseMessageMainPage();
 
     var formEdit = $('#' + modalId);
-    
+
 
     var jqxhr = $.getJSON("ReadTestCase", "test=" + encodeURIComponent(test) + "&testCase=" + encodeURIComponent(testCase));
     $.when(jqxhr).then(function (data) {
 
         var testCase = data.contentTable;
-        
+
         var appInfo = $.getJSON("ReadApplication", "application=" + encodeURIComponent(testCase.application));
 
         $.when(appInfo).then(function (appData) {
@@ -505,6 +512,30 @@ function feedTestCaseModal(test, testCase, modalId, mode) {
 function feedTestCaseData(testCase, modalId, mode, hasPermissionsUpdate, defaultTest) {
     var formEdit = $('#' + modalId);
     var doc = new Doc();
+    
+    var observer = new MutationObserver(function (mutations, me) {
+    	var behaviorOrValueExpected = tinyMCE.get('behaviorOrValueExpected');
+    	var howTo = tinyMCE.get('howTo')
+		if(howTo != null && behaviorOrValueExpected != null){
+			if(isEmpty(testCase)){
+				tinyMCE.get('behaviorOrValueExpected').setContent("");
+				tinyMCE.get('howTo').setContent("");
+			}
+    		else{
+    			tinyMCE.get('behaviorOrValueExpected').setContent(testCase.behaviorOrValueExpected);
+				tinyMCE.get('howTo').setContent(testCase.behaviorOrValueExpected);
+    		}
+			
+			me.disconnect()
+		}
+	    return;
+    });
+
+	// start observing
+	observer.observe(document, {
+	  childList: true,
+	  subtree: true
+	});
 
     // Data Feed.
     if (mode === "EDIT") {
@@ -515,7 +546,7 @@ function feedTestCaseData(testCase, modalId, mode, hasPermissionsUpdate, default
         formEdit.find("#usrcreated").prop("value", testCase.usrCreated);
         formEdit.find("#datecreated").prop("value", testCase.dateCreated);
         formEdit.find("#usrmodif").prop("value", testCase.usrModif);
-        formEdit.find("#datemodif").prop("value", testCase.dateModif);
+        formEdit.find("#datemodif").prop("value", getDate(testCase.dateModif));
         formEdit.find("#actProd").val(testCase.activePROD);
     } else { // DUPLICATE or ADD
         formEdit.find("#usrcreated").prop("value", "");
@@ -550,10 +581,7 @@ function feedTestCaseData(testCase, modalId, mode, hasPermissionsUpdate, default
         formEdit.find("#userAgent").prop("value", "");
         formEdit.find("#screenSize").prop("value", "");
         formEdit.find("#shortDesc").prop("value", "");
-        if (tinyMCE.get('behaviorOrValueExpected') != null)
-            tinyMCE.get('behaviorOrValueExpected').setContent("");
-        if (tinyMCE.get('howTo') != null)
-            formEdit.find("#active").prop("value", "Y");
+        formEdit.find("#active").prop("value", "Y");
         formEdit.find("#bugId").prop("value", "");
         formEdit.find("#conditionOper").prop("value", "always");
         formEdit.find("#conditionVal1").prop("value", "");
@@ -578,16 +606,13 @@ function feedTestCaseData(testCase, modalId, mode, hasPermissionsUpdate, default
         formEdit.find("#userAgent").prop("value", testCase.userAgent);
         formEdit.find("#screenSize").prop("value", testCase.screenSize);
         formEdit.find("#shortDesc").prop("value", testCase.description);
-        if (tinyMCE.get('behaviorOrValueExpected') != null)
-            tinyMCE.get('behaviorOrValueExpected').setContent(testCase.behaviorOrValueExpected);
-        if (tinyMCE.get('howTo') != null)
-            tinyMCE.get('howTo').setContent(testCase.howTo);
         formEdit.find("#active").prop("value", testCase.tcActive);
         formEdit.find("#bugId").prop("value", testCase.bugID);
         formEdit.find("#conditionOper").prop("value", testCase.conditionOper);
         formEdit.find("#conditionVal1").prop("value", testCase.conditionVal1);
         formEdit.find("#conditionVal2").prop("value", testCase.conditionVal2);
         formEdit.find("#comment").prop("value", testCase.comment);
+        formEdit.find("#testcaseversion").prop("value", testCase.testCaseVersion);
     }
 
     // Authorities

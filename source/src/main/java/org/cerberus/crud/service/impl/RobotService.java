@@ -64,7 +64,7 @@ public class RobotService implements IRobotService {
     }
 
     @Override
-    public AnswerItem<Robot> readByKey(String robot) {
+    public Robot readByKey(String robot) throws CerberusException {
         return fillCapabilities(robotDao.readByKey(robot));
     }
 
@@ -106,7 +106,7 @@ public class RobotService implements IRobotService {
 
         // Second, delete its capabilities
         AnswerUtil.agregateAnswer(finalAnswer, robotCapabilityService.delete(robot.getCapabilities()));
-        
+
         // Finally return aggregated answer
         return finalAnswer;
     }
@@ -177,6 +177,11 @@ public class RobotService implements IRobotService {
         throw new CerberusException(new MessageGeneral(MessageGeneralEnum.DATA_OPERATION_ERROR));
     }
 
+    private Robot fillCapabilities(Robot robotItem) throws CerberusException {
+        robotItem.setCapabilities(robotCapabilityService.convert(robotCapabilityService.readByRobot(robotItem.getRobot())));
+        return robotItem;
+    }
+
     private AnswerItem<Robot> fillCapabilities(AnswerItem<Robot> robotItem) {
         try {
             Robot robot = convert(robotItem);
@@ -204,7 +209,7 @@ public class RobotService implements IRobotService {
 
     @Override
     public AnswerList<List<String>> readDistinctValuesByCriteria(String searchParameter, Map<String, List<String>> individualSearch, String columnName) {
-        return robotDao.readDistinctValuesByCriteria(searchParameter,individualSearch,columnName);
+        return robotDao.readDistinctValuesByCriteria(searchParameter, individualSearch, columnName);
     }
 
 }

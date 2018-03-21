@@ -19,6 +19,7 @@
  */
 package org.cerberus.crud.service;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -100,6 +101,15 @@ public interface ITestCaseExecutionFileService {
      * @return
      */
     boolean exist(long exeId, String level, String fileDesc);
+    
+    /**
+    *
+    * @param exeId
+    * @param level
+    * @return
+    */
+   boolean exist(long exeId, String level);
+
 
     /**
      *
@@ -121,13 +131,26 @@ public interface ITestCaseExecutionFileService {
      * @return
      */
     Answer update(TestCaseExecutionFile object);
+    
+    /**
+     * 
+     * @param folder
+     */
+    void deleteFile(String root, String fileName);
 
     /**
      *
      * @param object
      * @return
      */
-    Answer save(TestCaseExecutionFile object);    
+    Answer save(TestCaseExecutionFile object);
+    
+    /**
+    *
+    * @param object
+    * @return
+    */
+   Answer saveManual(TestCaseExecutionFile object);
     
     /**
      *
@@ -151,5 +174,13 @@ public interface ITestCaseExecutionFileService {
      * @throws CerberusException
      */
     void convert(Answer answer) throws CerberusException;
+    
+    /**
+     * 
+     * @param fileName
+     * @param extension
+     * @return
+     */
+    public String checkExtension(String fileName, String extension);
 
 }

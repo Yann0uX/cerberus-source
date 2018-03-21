@@ -64,7 +64,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
  *
  * @author cerberus
  */
-@WebServlet(name = "UpdateTestCase2", urlPatterns = {"/UpdateTestCase2"})
+@WebServlet(name = "UpdateTestCase", urlPatterns = {"/UpdateTestCase"})
 public class UpdateTestCase extends HttpServlet {
 
     private static final Logger LOG = LogManager.getLogger(UpdateTestCase.class);
@@ -155,6 +155,7 @@ public class UpdateTestCase extends HttpServlet {
 
                 } else {
                     tc = getTestCaseFromRequest(request, tc);
+                    tc.setTestCaseVersion(tc.getTestCaseVersion()+1);
 
                     // Update testcase
                     ans = testCaseService.update(keyTest, keyTestCase, tc);
@@ -165,7 +166,7 @@ public class UpdateTestCase extends HttpServlet {
                          * Update was successful. Adding Log entry.
                          */
                         ILogEventService logEventService = appContext.getBean(LogEventService.class);
-                        logEventService.createForPrivateCalls("/UpdateTestCase", "UPDATE", "Update testcase : ['" + keyTest + "'|'" + keyTestCase + "']", request);
+                        logEventService.createForPrivateCalls("/UpdateTestCase", "UPDATE", "Update testcase : ['" + keyTest + "'|'" + keyTestCase + "'] " + "version : "+tc.getTestCaseVersion(), request);
 
                         // Update labels
                         if (request.getParameter("labelList") != null) {
@@ -294,18 +295,18 @@ public class UpdateTestCase extends HttpServlet {
         tc.setOrigine(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("origin"), tc.getOrigine(), charset));
         tc.setGroup(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("group"), tc.getGroup(), charset));
         tc.setStatus(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("status"), tc.getStatus(), charset));
-        tc.setDescription(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("shortDesc"), tc.getDescription(), charset));
-        tc.setBugID(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("bugId"), tc.getBugID(), charset));
-        tc.setComment(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("comment"), tc.getComment(), charset));
-        tc.setFunction(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("function"), tc.getFunction(), charset));
-        tc.setUserAgent(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("userAgent"), tc.getUserAgent(), charset));
-        tc.setScreenSize(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("screenSize"), tc.getScreenSize(), charset));
-        tc.setConditionVal1(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("conditionVal1"), tc.getConditionVal1(), charset));
-        tc.setConditionVal2(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("conditionVal2"), tc.getConditionVal2(), charset));
 
         // Parameter that we cannot secure as we need the html --> We DECODE them
+        tc.setDescription(ParameterParserUtil.parseStringParamAndDecode(request.getParameter("shortDesc"), tc.getDescription(), charset));
         tc.setBehaviorOrValueExpected(ParameterParserUtil.parseStringParamAndDecode(request.getParameter("behaviorOrValueExpected"), tc.getBehaviorOrValueExpected(), charset));
         tc.setHowTo(ParameterParserUtil.parseStringParamAndDecode(request.getParameter("howTo"), tc.getHowTo(), charset));
+        tc.setBugID(ParameterParserUtil.parseStringParamAndDecode(request.getParameter("bugId"), tc.getBugID(), charset));
+        tc.setComment(ParameterParserUtil.parseStringParamAndDecode(request.getParameter("comment"), tc.getComment(), charset));
+        tc.setFunction(ParameterParserUtil.parseStringParamAndDecode(request.getParameter("function"), tc.getFunction(), charset));
+        tc.setUserAgent(ParameterParserUtil.parseStringParamAndDecode(request.getParameter("userAgent"), tc.getUserAgent(), charset));
+        tc.setScreenSize(ParameterParserUtil.parseStringParamAndDecode(request.getParameter("screenSize"), tc.getScreenSize(), charset));
+        tc.setConditionVal1(ParameterParserUtil.parseStringParamAndDecode(request.getParameter("conditionVal1"), tc.getConditionVal1(), charset));
+        tc.setConditionVal2(ParameterParserUtil.parseStringParamAndDecode(request.getParameter("conditionVal2"), tc.getConditionVal2(), charset));
 
         return tc;
     }

@@ -100,14 +100,6 @@ public interface ITestCaseExecutionDAO {
      */
     TestCaseExecution findTCExecutionByKey(long id) throws CerberusException;
 
-    /**
-     * @param campaign the campaign name for the execution list
-     * @param tag the tag name of the execution list
-     * @return a list of testCaseExecution done on the campaign name and tag
-     * with tag name.
-     * @throws CerberusException when no executions can be found.
-     */
-    List<TestCaseExecution> findExecutionsByCampaignNameAndTag(String campaign, String tag) throws CerberusException;
 
     /**
      * @param withUUIDTag determine of we must retreive UUID tag or not
@@ -178,7 +170,7 @@ public interface ITestCaseExecutionDAO {
      * @return
      * @throws CerberusException
      */
-    public AnswerList readByCriteria(int start, int amount, String sort, String searchTerm, Map<String, List<String>> individualSearch) throws CerberusException;
+    public AnswerList readByCriteria(int start, int amount, String sort, String searchTerm, Map<String, List<String>> individualSearch, List<String> individualLike) throws CerberusException;
 
     /**
      *
@@ -250,7 +242,7 @@ public interface ITestCaseExecutionDAO {
     public TestCaseExecution loadFromResultSet(ResultSet resultSet) throws SQLException;
 
     /**
-     * Get the distinct value of the specified column
+     * Get the distinct value of the specified colum
      * @param system
      * @param test
      * @param searchParameter

@@ -20,7 +20,7 @@
 $.when($.getScript("js/global/global.js")).then(function () {
     $(document).ready(function () {
         initPage();
-        
+
         $('[data-toggle="popover"]').popover({
             'placement': 'auto',
             'container': 'body'}
@@ -38,15 +38,15 @@ function initPage() {
 
 
     // Display table
-    var configurations = new TableConfigurationsServerSide("executionsTable", "ReadTestCaseExecutionQueue", "contentTable", aoColumnsFunc("executionsTable"), [1, 'desc'], [10, 25, 50, 100, 200, 500, 1000]);
+    var configurations = new TableConfigurationsServerSide("executionsTable", "ReadTestCaseExecutionQueue", "contentTable", aoColumnsFunc("executionsTable"), [2, 'desc'], [10, 25, 50, 100, 200, 500, 1000]);
     var table = createDataTableWithPermissions(configurations, renderOptionsForExeQueue, "#executionList", undefined, true);
 
     if (searchS !== null) {
         table.search(searchS).draw();
     }
-    
-    if(myTag !== null){
-    	filterTag(myTag);
+
+    if (myTag !== null) {
+        filterTag(myTag);
     }
 
     // React on table redraw
@@ -87,6 +87,8 @@ function initPage() {
 }
 
 function displayAndRefresh_followup() {
+    showLoader('#followUpTableList');
+
     // Display table
     var jqxhr = $.getJSON("ReadTestCaseExecutionQueue?flag=queueStatus");
     $.when(jqxhr).then(function (data) {
@@ -108,16 +110,20 @@ function displayAndRefresh_followup() {
             $("#followUpTableList #followUpTable").DataTable().clear();
             $("#followUpTableList #followUpTable").DataTable().rows.add(array).draw();
         } else {
-            var configurations1 = new TableConfigurationsClientSide("followUpTable", array, aoColumnsFunc_followUp(), true);
+            var configurations1 = new TableConfigurationsClientSide("followUpTable", array, aoColumnsFunc_followUp(), true, [1, 'asc']);
             createDataTableWithPermissions(configurations1, undefined, "#followUpTableList", undefined, true);
         }
+
+        hideLoader('#followUpTableList');
     });
 
 
 }
 
 function displayAndRefresh_jobStatus() {
-    // Display table
+    showLoader('#QueueJobStatus');
+    showLoader('#QueueJobActive');
+
     var jqxhr = $.getJSON("ExecuteNextInQueue");
     $.when(jqxhr).then(function (data) {
         var obj = data;
@@ -131,11 +137,15 @@ function displayAndRefresh_jobStatus() {
         } else {
             $("#modifyParambutton").attr("disabled", true);
         }
+
+        hideLoader('#QueueJobStatus');
+        hideLoader('#QueueJobActive');
+
     });
 }
 
 function forceExecution() {
-    // Display table
+
     var jqxhr = $.getJSON("ExecuteNextInQueue?forceExecution=Y");
     $.when(jqxhr).then(function (data) {
         var obj = data;
@@ -143,6 +153,9 @@ function forceExecution() {
         $("#jobRunning").val(data["jobRunning"]);
         $("#jobStart").val(data["jobStart"]);
         $("#jobActive").val(data["jobActive"]);
+
+        displayAndRefresh_jobStatus();
+
     });
 }
 
@@ -172,8 +185,8 @@ function filterERunning() {
     filterOnColumn("executionsTable", "state", "EXECUTING,STARTING,WAITING");
 }
 
-function filterTag(myTag){
-	filterOnColumn("executionsTable", "tag", myTag)
+function filterTag(myTag) {
+    filterOnColumn("executionsTable", "tag", myTag)
 }
 
 function displayPageLabel() {
@@ -249,7 +262,10 @@ function massActionModalSaveHandler_copy() {
             $('#executionsTable').DataTable().draw();
             $("#selectAll").prop("checked", false);
             $('#massActionExeQModal').modal('hide');
-            showMessage(data);
+            if (data.addedEntries === 1) {
+                data.message = data.message + "<a href='TestCaseExecution.jsp?executionQueueId=" + data.testCaseExecutionQueueList[0].id + "'><button class='btn btn-primary' id='goToExecution'>Get to Execution</button></a>";
+            }
+            showMessageMainPage(getAlertType(data.messageType), data.message, false, 60000);
         } else {
             showMessage(data, $('#massActionExeQModal'));
         }
@@ -442,9 +458,17 @@ function aoColumnsFunc(tableId) {
         },
         {
             "data": "id",
+            "like": true,
             "sName": "id",
             "title": doc.getDocLabel("page_testcaseexecutionqueue", "id_col"),
-            "sWidth": "40px"
+            "sWidth": "40px",
+            "mRender": function (data, type, oObj) {
+                if (oObj["exeId"] <= 0) {
+                    return '<a href="TestCaseExecution.jsp?executionQueueId=' + oObj["id"] + '">' + oObj["id"] + '</a>';
+                } else {
+                    return '<a href="TestCaseExecution.jsp?executionId=' + oObj["exeId"] + '">' + oObj["id"] + '</a>';
+                }
+            }
         },
         {
             "data": "priority",
@@ -454,6 +478,7 @@ function aoColumnsFunc(tableId) {
         },
         {
             "data": "tag",
+            "like": true,
             "sName": "tag",
             "title": doc.getDocLabel("page_testcaseexecutionqueue", "tag_col"),
             "sWidth": "150px",
@@ -461,12 +486,13 @@ function aoColumnsFunc(tableId) {
                 if (isEmpty(obj["tag"])) {
                     return "";
                 } else {
-                    return '<a href="ReportingExecutionByTag.jsp?Tag=' + obj["tag"] + '">' + obj["tag"] + '</div>';
+                    return '<a href="ReportingExecutionByTag.jsp?Tag=' + obj["tag"] + '">' + obj["tag"] + '</a>';
                 }
             }
         },
         {
             "data": "requestDate",
+            "like": true,
             "sName": "requestDate",
             "title": doc.getDocLabel("page_testcaseexecutionqueue", "requestDate_col"),
             "sWidth": "110px"
@@ -479,6 +505,7 @@ function aoColumnsFunc(tableId) {
         },
         {
             "data": "comment",
+            "like": true,
             "sName": "comment",
             "title": doc.getDocLabel("page_testcaseexecutionqueue", "comment_col"),
             "sWidth": "200px",
@@ -486,6 +513,7 @@ function aoColumnsFunc(tableId) {
         },
         {
             "data": "exeId",
+            "like": true,
             "sName": "exeId",
             "title": doc.getDocLabel("page_testcaseexecutionqueue", "exeId"),
             "sWidth": "40px",
@@ -494,7 +522,7 @@ function aoColumnsFunc(tableId) {
                 if (obj["exeId"] <= 0) {
                     return "";
                 } else {
-                    return '<a href="TestCaseExecution.jsp?executionId=' + obj["exeId"] + '">' + obj["exeId"] + '</div>';
+                    return '<a href="TestCaseExecution.jsp?executionId=' + obj["exeId"] + '">' + obj["exeId"] + '</a>';
                 }
             }
         },
@@ -507,6 +535,7 @@ function aoColumnsFunc(tableId) {
         },
         {
             "data": "DateCreated",
+            "like": true,
             "sName": "DateCreated",
             "sWidth": "110px",
             "defaultContent": "",
@@ -520,6 +549,7 @@ function aoColumnsFunc(tableId) {
         },
         {
             "data": "testCase",
+            "like": true,
             "sName": "testcase",
             "title": doc.getDocLabel("page_testcaseexecutionqueue", "testcase_col"),
             "sWidth": "70px"
@@ -685,7 +715,7 @@ function aoColumnsFunc(tableId) {
             "sName": "debugFlag",
             "title": doc.getDocLabel("testcaseexecutionqueue", "debugFlag"),
             "sWidth": "70px",
-            "defaultContent": "",
+            "defaultContent": ""
         },
         {
             "data": "UsrModif",
@@ -699,7 +729,10 @@ function aoColumnsFunc(tableId) {
             "sName": "DateModif",
             "sWidth": "110px",
             "defaultContent": "",
-            "title": doc.getDocOnline("transversal", "DateModif")
+            "title": doc.getDocOnline("transversal", "DateModif"),
+            "mRender": function (data, type, oObj) {
+                return getDate(oObj["DateModif"]);
+            }
         }
     ];
     return aoColumns;
@@ -710,6 +743,8 @@ function aoColumnsFunc_followUp() {
     var aoColumns = [
         {
             "data": null,
+            "sWidth": "50px",
+            "sSearchable": false,
             "sName": "action",
             "title": doc.getDocLabel("page_global", "columnAction"),
             "mRender": function (data, type, oObj) {
@@ -750,15 +785,15 @@ function aoColumnsFunc_followUp() {
             }
         }
         ,
-        {"data": "0", "sName": "constrainsId", "title": doc.getDocLabel("page_testcaseexecutionqueue", "constrain")},
-        {"data": "1", "sName": "system", "title": doc.getDocLabel("invariant", "SYSTEM")},
-        {"data": "2", "sName": "environment", "title": doc.getDocLabel("invariant", "ENVIRONMENT")},
-        {"data": "3", "sName": "country", "title": doc.getDocLabel("invariant", "COUNTRY")},
-        {"data": "4", "sName": "application", "title": doc.getDocLabel("application", "Application")},
-        {"data": "5", "sName": "robot", "title": doc.getDocLabel("robot", "robot")},
-        {"data": "6", "sName": "nbRunning", "title": doc.getDocLabel("page_testcaseexecutionqueue", "nbRunning")},
-        {"data": "7", "sName": "nbPoolSize", "title": doc.getDocLabel("page_testcaseexecutionqueue", "nbPoolSize")},
-        {"data": "8", "sName": "nbInQueue", "title": doc.getDocLabel("page_testcaseexecutionqueue", "nbInQueue")},
+        {"data": "0", "sName": "constrainsId", "sWidth": "100px", "title": doc.getDocLabel("page_testcaseexecutionqueue", "constrain")},
+        {"data": "1", "sName": "system", "sWidth": "50px", "title": doc.getDocLabel("invariant", "SYSTEM")},
+        {"data": "2", "sName": "environment", "sWidth": "50px", "title": doc.getDocLabel("invariant", "ENVIRONMENT")},
+        {"data": "3", "sName": "country", "sWidth": "50px", "title": doc.getDocLabel("invariant", "COUNTRY")},
+        {"data": "4", "sName": "application", "sWidth": "50px", "title": doc.getDocLabel("application", "Application")},
+        {"data": "5", "sName": "robot", "sWidth": "50px", "title": doc.getDocLabel("robot", "robot")},
+        {"data": "6", "sName": "nbRunning", "sWidth": "50px", "title": doc.getDocLabel("page_testcaseexecutionqueue", "nbRunning")},
+        {"data": "7", "sName": "nbPoolSize", "sWidth": "50px", "title": doc.getDocLabel("page_testcaseexecutionqueue", "nbPoolSize")},
+        {"data": "8", "sName": "nbInQueue", "sWidth": "50px", "title": doc.getDocLabel("page_testcaseexecutionqueue", "nbInQueue")},
         {
             "data": null, "sName": "saturation", "title": doc.getDocLabel("page_testcaseexecutionqueue", "saturation"),
             "mRender": function (data, type, obj) {

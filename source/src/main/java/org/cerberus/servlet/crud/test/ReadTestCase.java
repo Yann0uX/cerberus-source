@@ -35,6 +35,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.cerberus.crud.entity.CampaignParameter;
 import org.cerberus.crud.entity.TestCase;
 import org.cerberus.crud.entity.TestCaseCountry;
 import org.cerberus.crud.entity.TestCaseCountryProperties;
@@ -49,6 +50,7 @@ import org.cerberus.crud.service.ITestCaseService;
 import org.cerberus.crud.service.ITestCaseStepActionControlService;
 import org.cerberus.crud.service.ITestCaseStepActionService;
 import org.cerberus.crud.service.ITestCaseStepService;
+import org.cerberus.crud.service.impl.CampaignParameterService;
 import org.cerberus.engine.entity.MessageEvent;
 import org.cerberus.enums.MessageEventEnum;
 import org.cerberus.util.ParameterParserUtil;
@@ -61,8 +63,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
+import org.cerberus.crud.service.ICampaignParameterService;
 
 /**
  * @author cerberus
@@ -76,6 +80,7 @@ public class ReadTestCase extends HttpServlet {
     private ITestCaseStepActionService testCaseStepActionService;
     private ITestCaseStepActionControlService testCaseStepActionControlService;
     private ITestCaseLabelService testCaseLabelService;
+    private ICampaignParameterService campaignParameterService;
 
     private static final Logger LOG = LogManager.getLogger(ReadTestCase.class);
 
@@ -116,6 +121,7 @@ public class ReadTestCase extends HttpServlet {
         boolean withStep = ParameterParserUtil.parseBooleanParam(request.getParameter("withStep"), false);
         String columnName = ParameterParserUtil.parseStringParam(request.getParameter("columnName"), "");
 
+        campaignParameterService = appContext.getBean(ICampaignParameterService.class);
         // Global boolean on the servlet that define if the user has permition to edit and delete object.
         boolean userHasPermissions = request.isUserInRole("TestAdmin");
 
@@ -219,6 +225,8 @@ public class ReadTestCase extends HttpServlet {
         String searchParameter = ParameterParserUtil.parseStringParam(request.getParameter("sSearch"), "");
         String sColumns = ParameterParserUtil.parseStringParam(request.getParameter("sColumns"), "tec.test,tec.testcase,tec.application,project,ticket,description,behaviororvalueexpected,readonly,bugtrackernewurl,deploytype,mavengroupid");
         String columnToSort[] = sColumns.split(",");
+        List<String> individualLike = new ArrayList(Arrays.asList(ParameterParserUtil.parseStringParam(request.getParameter("sLike"),"").split(",")));
+
 
         //Get Sorting information
         int numberOfColumnToSort = Integer.parseInt(ParameterParserUtil.parseStringParam(request.getParameter("iSortingCols"), "1"));
@@ -240,7 +248,11 @@ public class ReadTestCase extends HttpServlet {
         for (int a = 0; a < columnToSort.length; a++) {
             if (null != request.getParameter("sSearch_" + a) && !request.getParameter("sSearch_" + a).isEmpty()) {
                 List<String> search = new ArrayList(Arrays.asList(request.getParameter("sSearch_" + a).split(",")));
-                individualSearch.put(columnToSort[a], search);
+                if(individualLike.contains(columnToSort[a])) {
+                	individualSearch.put(columnToSort[a]+":like", search);
+                }else {
+                	individualSearch.put(columnToSort[a], search);
+                }
             }
         }
 
@@ -371,7 +383,7 @@ public class ReadTestCase extends HttpServlet {
         int length = ParameterParserUtil.parseIntegerParam(request.getParameter("length"), -1);
 
         testCaseService = appContext.getBean(ITestCaseService.class);
-        AnswerList answer = testCaseService.readByVarious(test, idProject, app, creator, implementer, system, testBattery, campaign, labelid, priority, group, status, length);
+        AnswerList answer = testCaseService.readByVarious(test, idProject, app, creator, implementer, system, campaign, labelid, priority, group, status, length);
 
         if (answer.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {
             for (TestCase tc : (List<TestCase>) answer.getDataList()) {
@@ -393,9 +405,21 @@ public class ReadTestCase extends HttpServlet {
         String[] campaignList = new String[1];
         campaignList[0] = campaign;
         testCaseService = appContext.getBean(ITestCaseService.class);
-        AnswerList resp = testCaseService.readByVarious(null, null, null, null, null, null, null, campaignList, null, null, null, null, -1);
+        
+        final AnswerItem<Map<String, List<String>>> parsedCampaignParameters = campaignParameterService.parseParametersByCampaign(campaign);
+
+        List<String> countries = parsedCampaignParameters.getItem().get(CampaignParameter.COUNTRY_PARAMETER);
+        
+        AnswerItem<List<TestCase>> resp = null;
+        
+        if(countries !=  null && !countries.isEmpty()) {
+        	resp = testCaseService.findTestCaseByCampaignNameAndCountries(campaign, countries.toArray(new String[countries.size()]));
+        }else {
+        	resp = testCaseService.findTestCaseByCampaignNameAndCountries(campaign, null);            
+        }
+        
         if (resp.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {//the service was able to perform the query, then we should get all values
-            for (Object c : resp.getDataList()) {
+            for (Object c : resp.getItem()) {
                 TestCase cc = (TestCase) c;
                 dataArray.put(convertToJSONObject(cc));
             }
@@ -580,11 +604,17 @@ public class ReadTestCase extends HttpServlet {
         String sColumns = ParameterParserUtil.parseStringParam(request.getParameter("sColumns"), "tec.test,tec.testcase,application,project,ticket,description,behaviororvalueexpected,readonly,bugtrackernewurl,deploytype,mavengroupid");
         String columnToSort[] = sColumns.split(",");
 
+        List<String> individualLike = new ArrayList(Arrays.asList(ParameterParserUtil.parseStringParam(request.getParameter("sLike"), "").split(",")));
+
         Map<String, List<String>> individualSearch = new HashMap<>();
         for (int a = 0; a < columnToSort.length; a++) {
             if (null != request.getParameter("sSearch_" + a) && !request.getParameter("sSearch_" + a).isEmpty()) {
-                List<String> search = new ArrayList(Arrays.asList(request.getParameter("sSearch_" + a).split(",")));
-                individualSearch.put(columnToSort[a], search);
+            	List<String> search = new ArrayList(Arrays.asList(request.getParameter("sSearch_" + a).split(",")));
+            	if(individualLike.contains(columnToSort[a])) {
+                	individualSearch.put(columnToSort[a]+":like", search);
+                }else {
+                	individualSearch.put(columnToSort[a], search);
+                } 
             }
         }
 

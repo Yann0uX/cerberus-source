@@ -60,7 +60,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 public class UpdateRobot extends HttpServlet {
 
     private static final Logger LOG = LogManager.getLogger(UpdateRobot.class);
-    
+
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -97,10 +97,14 @@ public class UpdateRobot extends HttpServlet {
         String description = ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("description"), "", charset);
         String userAgent = ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("useragent"), "", charset);
         String screenSize = ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("screensize"), "", charset);
+        String hostUser = ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("hostUsername"), null, charset);
+        String hostPassword = ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("hostPassword"), null, charset);
         // Parameter that we cannot secure as we need the html --> We DECODE them
         String host = ParameterParserUtil.parseStringParamAndDecode(request.getParameter("host"), null, charset);
-        
-        List<RobotCapability> capabilities = (List<RobotCapability>) (request.getParameter("capabilities") == null ? Collections.emptyList() : gson.fromJson(request.getParameter("capabilities"), new TypeToken<List<RobotCapability>>(){}.getType()));
+        String robotDecli = ParameterParserUtil.parseStringParamAndDecode(request.getParameter("robotDecli"), null, charset);
+        List<RobotCapability> capabilities = (List<RobotCapability>) (request.getParameter("capabilities") == null ? Collections.emptyList() : gson.fromJson(request.getParameter("capabilities"), new TypeToken<List<RobotCapability>>() {
+        }.getType()));
+
         // Securing capabilities by setting them the associated robot name
         // Check also if there is no duplicated capability
         Map<String, Object> capabilityMap = new HashMap<String, Object>();
@@ -134,12 +138,6 @@ public class UpdateRobot extends HttpServlet {
                     .replace("%OPERATION%", "Update")
                     .replace("%REASON%", "Robot host is missing."));
             ans.setResultMessage(msg);
-        } else if (StringUtil.isNullOrEmpty(port)) {
-            msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_EXPECTED);
-            msg.setDescription(msg.getDescription().replace("%ITEM%", "Robot")
-                    .replace("%OPERATION%", "Update")
-                    .replace("%REASON%", "Robot port is missing."));
-            ans.setResultMessage(msg);
         } else if (StringUtil.isNullOrEmpty(platform)) {
             msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_EXPECTED);
             msg.setDescription(msg.getDescription().replace("%ITEM%", "Robot")
@@ -166,7 +164,7 @@ public class UpdateRobot extends HttpServlet {
             IRobotService robotService = appContext.getBean(IRobotService.class);
 
             AnswerItem resp = robotService.readByKeyTech(robotid);
-            if (!(resp.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode()) && resp.getItem()!=null)) {
+            if (!(resp.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode()) && resp.getItem() != null)) {
                 /**
                  * Object could not be found. We stop here and report the error.
                  */
@@ -193,11 +191,15 @@ public class UpdateRobot extends HttpServlet {
                 robotData.setUserAgent(userAgent);
                 robotData.setCapabilities(capabilities);
                 robotData.setScreenSize(screenSize);
+                robotData.setHostUser(hostUser);
+                robotData.setHostPassword(hostPassword);
+                robotData.setRobotDecli(robotDecli);
+
                 ans = robotService.update(robotData);
 
                 if (ans.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {
                     /**
-                     * Update was succesfull. Adding Log entry.
+                     * Update was successful. Adding Log entry.
                      */
                     ILogEventService logEventService = appContext.getBean(LogEventService.class);
                     logEventService.createForPrivateCalls("/UpdateRobot", "UPDATE", "Updated Robot : ['" + robotid + "'|'" + robot + "']", request);
@@ -214,7 +216,6 @@ public class UpdateRobot extends HttpServlet {
         response.getWriter().print(jsonResponse);
         response.getWriter().flush();
     }
-    
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**

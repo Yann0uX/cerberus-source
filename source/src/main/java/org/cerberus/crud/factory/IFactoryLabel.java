@@ -32,16 +32,21 @@ public interface IFactoryLabel {
      * @param id
      * @param system
      * @param label
+     * @param type
      * @param color
      * @param parentLabel
+     * @param reqType
+     * @param reqStatus
+     * @param reqCriticity
      * @param description
+     * @param longDesc
      * @param usrCreated
      * @param dateCreated
      * @param usrModif
      * @param dateModif
      * @return 
      */
-    Label create(Integer id, String system, String label, String color, String parentLabel, String description
+    Label create(Integer id, String system, String label, String type, String color, String parentLabel, String reqType, String reqStatus, String reqCriticity, String description, String longDesc
             , String usrCreated, Timestamp dateCreated, String usrModif, Timestamp dateModif);
 
 

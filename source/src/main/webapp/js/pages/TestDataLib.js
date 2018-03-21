@@ -37,29 +37,9 @@ function initPage() {
     /*
      * Handles the change of the type when adding a new test data lib entry
      */
-    $("select[id='service']").append($('<option></option>').text("").val(""));
-    displayAppServiceList("service", "");
-
-    $("#addTestDataLibModal #service").change(function () {
-        activateSOAPServiceFields("#addTestDataLibModal", $(this).val());
-    });
+   
     $("#editTestDataLibModal #service").change(function () {
         activateSOAPServiceFields("#editTestDataLibModal", $(this).val());
-    });
-    $("#duplicateTestDataLibModal #service").change(function () {
-        activateSOAPServiceFields("#duplicateTestDataLibModal", $(this).val());
-    });
-
-
-    // Click on add row button adds a Subdata entry.
-    $("#addSubData").click(function () {
-        addNewSubDataRow("subdataTableBody");
-    });
-    $("#addSubData_edit").click(function () {
-        addNewSubDataRow("subdataTableBody_edit")
-    });
-    $("#dupSubData").click(function () {
-        addNewSubDataRow("subdataTableBody_dup")
     });
 
     var configurations = new TableConfigurationsServerSide("listOfTestDataLib", "ReadTestDataLib", "contentTable", aoColumnsFuncTestDataLib("listOfTestDataLib"), [2, 'asc']);
@@ -142,15 +122,20 @@ function renderOptionsForTestDataLib(data) {
 
     if (data["hasPermissions"]) {
         if ($("#createLibButton").length === 0) {
-            var contentToAdd = "<div class='marginBottom10'><button id='createLibButton' type='bytton' class='btn btn-default'><span class='glyphicon glyphicon-plus-sign'></span> ";
+            var contentToAdd = "<div class='marginBottom10'><button id='createLibButton' type='button' class='btn btn-default'><span class='glyphicon glyphicon-plus-sign'></span> ";
             contentToAdd += doc.getDocLabel("page_testdatalib", "btn_create"); //translation for the create button;
             contentToAdd += "</button></div>";
 
             $("#listOfTestDataLib_wrapper #listOfTestDataLib_length").before(contentToAdd);
             
+        	if (window.matchMedia("(max-width: 768px)").matches) {
+        		$("#createLibButton").addClass("pull-right")
+        	} 
+            
             $("#createLibButton").off("click");
             $('#createLibButton').click(function() {
-                openModalDataLib(undefined, "ADD");
+                openModalDataLib(null, undefined, "ADD");
+                
             });
 
         }
@@ -286,11 +271,11 @@ function aoColumnsFuncTestDataLib(tableId) {
             "title": doc.getDocLabel("testdatalib", "actions"),
             "mRender": function (data, type, obj) {
                 var hasPermissions = $("#" + tableId).attr("hasPermissions");
-                var editElement = '<button id="editTestDataLib' + data + '"  onclick="openModalDataLib(\'' + obj["testDataLibID"] + '\', \'EDIT\'  );" \n\
+                var editElement = '<button id="editTestDataLib' + data + '"  onclick="openModalDataLib(' + null + ",'" + obj["testDataLibID"] + '\', \'EDIT\'  );" \n\
                                 class="editTestDataLib btn btn-default btn-xs margin-right5" \n\
                             name="editTestDataLib" title="' + doc.getDocLabel("page_testdatalib", "tooltip_editentry") + '" type="button">\n\
                             <span class="glyphicon glyphicon-pencil"></span></button>';
-                var viewElement = '<button id="editTestDataLib' + data + '"  onclick="openModalDataLib(\'' + obj["testDataLibID"] + '\', \'EDIT\'  );" \n\
+                var viewElement = '<button id="editTestDataLib' + data + '"  onclick="openModalDataLib(' + null + ",'" + obj["testDataLibID"] + '\', \'EDIT\'  );" \n\
                                 class="editTestDataLib btn btn-default btn-xs margin-right25" \n\
                             name="editTestDataLib" title="' + doc.getDocLabel("page_testdatalib", "tooltip_editentry") + '" type="button">\n\
                             <span class="glyphicon glyphicon-eye-open"></span></button>';
@@ -301,7 +286,7 @@ function aoColumnsFuncTestDataLib(tableId) {
                             <span class="glyphicon glyphicon-trash"></span></button>';
                 var duplicateEntryElement = '<button class="btn btn-default btn-xs margin-right5" \n\
                             name="duplicateTestDataLib" title="' + doc.getDocLabel("page_testdatalib", "tooltip_duplicateEntry") + '"\n\
-                                 type="button" onclick="openModalDataLib(\'' + obj["testDataLibID"] + '\', \'DUPLICATE\'  )">\n\
+                                 type="button" onclick="openModalDataLib(' + null + ",'" + obj["testDataLibID"] + '\', \'DUPLICATE\'  )">\n\
                                 <span class="glyphicon glyphicon-duplicate"></span></button>'; //TODO check if we can add this glyphicon glyphicon-duplicate
                 var viewTestCase = '<button class="getTestCasesUsing btn  btn-default btn-xs margin-right5" \n\
                             name="getTestCasesUsing" title="' + doc.getDocLabel("page_testdatalib", "tooltip_gettestcases") + '" type="button" \n\
@@ -316,12 +301,14 @@ function aoColumnsFuncTestDataLib(tableId) {
         },
         {
             "sName": "tdl.TestDataLibID",
+            "like":true,
             "data": "testDataLibID",
             "sWidth": "50px",
             "title": doc.getDocOnline("testdatalib", "testdatalibid")
         },
         {
             "sName": "tdl.Name",
+            "like":true,
             "data": "name",
             "sWidth": "200px",
             "title": doc.getDocOnline("testdatalib", "name")
@@ -346,12 +333,14 @@ function aoColumnsFuncTestDataLib(tableId) {
         },
         {
             "sName": "tdl.Group",
+            "like":true,
             "data": "group",
             "sWidth": "100px",
             "title": doc.getDocOnline("testdatalib", "group")
         },
         {
             "sName": "tdl.Description",
+            "like":true,
             "data": "description",
             "sWidth": "150px",
             "title": doc.getDocOnline("testdatalib", "description")
@@ -364,6 +353,7 @@ function aoColumnsFuncTestDataLib(tableId) {
         },
         {
             "sName": "tdd.value",
+            "like":true,
             "data": "subDataValue",
             "sWidth": "150px",
             "bSortable": false,
@@ -393,18 +383,20 @@ function aoColumnsFuncTestDataLib(tableId) {
         },
         {
             "sName": "tdl.ServicePath",
+            "like":true,
             "data": "servicePath",
             "sWidth": "150px",
             "title": doc.getDocOnline("testdatalib", "servicepath")
         },
         {
             "sName": "tdl.method",
+            "like":true,
             "data": "method",
             "sWidth": "150px",
             "title": doc.getDocOnline("testdatalib", "method")
         },
         {
-            "data": "envelope", "sName": "tdl.envelope", "title": doc.getDocLabel("testdatalib", "envelope"), "sWidth": "350px",
+            "data": "envelope", "sName": "tdl.envelope", "like":true, "title": doc.getDocLabel("testdatalib", "envelope"), "sWidth": "350px",
             "mRender": function (data, type, obj) {
                 return $("<div></div>").append($("<pre name='envelopeField' style='height:20px; overflow:hidden; text-overflow:clip; border: 0px; padding:0; margin:0'></pre>").text(obj['envelope'])).html();
             }
@@ -417,6 +409,7 @@ function aoColumnsFuncTestDataLib(tableId) {
         },
         {
             "sName": "tdl.csvUrl",
+            "like":true,
             "data": "csvUrl",
             "sWidth": "150px",
             "title": doc.getDocOnline("testdatalib", "csvUrl")
@@ -429,6 +422,7 @@ function aoColumnsFuncTestDataLib(tableId) {
         },
         {
             "sName": "tdl.Created",
+            "like":true,
             "data": "created",
             "sWidth": "150px",
             "title": doc.getDocOnline("testdatalib", "created")
@@ -441,9 +435,13 @@ function aoColumnsFuncTestDataLib(tableId) {
         },
         {
             "sName": "tdl.LastModified",
+            "like":true,
             "data": "lastModified",
             "sWidth": "150px",
-            "title": doc.getDocOnline("testdatalib", "lastmodified")
+            "title": doc.getDocOnline("testdatalib", "lastmodified"),
+            "mRender": function (data, type, oObj) {
+                return getDate(oObj["lastModified"]);
+            }
         },
         {
             "sName": "tdl.LastModifier",
@@ -453,6 +451,7 @@ function aoColumnsFuncTestDataLib(tableId) {
         },
         {
             "sName": "tdd.column",
+            "like":true,
             "data": "subDataColumn",
             "bSortable": false,
             "sWidth": "70px",
@@ -460,6 +459,7 @@ function aoColumnsFuncTestDataLib(tableId) {
         },
         {
             "sName": "tdd.ParsingAnswer",
+            "like":true,
             "data": "subDataParsingAnswer",
             "bSortable": false,
             "sWidth": "70px",

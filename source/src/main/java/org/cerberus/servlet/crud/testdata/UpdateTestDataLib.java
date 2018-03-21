@@ -19,24 +19,36 @@
  */
 package org.cerberus.servlet.crud.testdata;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileItemFactory;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.cerberus.engine.entity.MessageEvent;
 import org.cerberus.crud.entity.TestDataLib;
 import org.cerberus.crud.entity.TestDataLibData;
 import org.cerberus.crud.factory.IFactoryTestDataLibData;
 import org.cerberus.crud.service.ILogEventService;
+import org.cerberus.crud.service.IParameterService;
 import org.cerberus.crud.service.ITestDataLibDataService;
 import org.cerberus.crud.service.ITestDataLibService;
 import org.cerberus.crud.service.impl.LogEventService;
+import org.cerberus.engine.entity.MessageEvent;
 import org.cerberus.enums.MessageEventEnum;
 import org.cerberus.util.ParameterParserUtil;
 import org.cerberus.util.StringUtil;
@@ -60,6 +72,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 public class UpdateTestDataLib extends HttpServlet {
 
     private static final Logger LOG = LogManager.getLogger(UpdateTestDataLib.class);
+
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -79,41 +92,67 @@ public class UpdateTestDataLib extends HttpServlet {
         ans.setResultMessage(msg);
         PolicyFactory policy = Sanitizers.FORMATTING.and(Sanitizers.LINKS);
         String charset = request.getCharacterEncoding();
+        IFactoryTestDataLibData tdldFactory = appContext.getBean(IFactoryTestDataLibData.class);
 
         ITestDataLibDataService tdldService = appContext.getBean(ITestDataLibDataService.class);
+        IParameterService parameterService = appContext.getBean(IParameterService.class);
 
         response.setContentType("application/json");
+
+        Map<String, String> fileData = new HashMap<String, String>();
+        FileItem file = null;
+
+        FileItemFactory factory = new DiskFileItemFactory();
+        ServletFileUpload upload = new ServletFileUpload(factory);
+        try {
+            List<FileItem> fields = upload.parseRequest(request);
+            Iterator<FileItem> it = fields.iterator();
+            if (!it.hasNext()) {
+                return;
+            }
+            while (it.hasNext()) {
+                FileItem fileItem = it.next();
+                boolean isFormField = fileItem.isFormField();
+                if (isFormField) {
+                    fileData.put(fileItem.getFieldName(), ParameterParserUtil.parseStringParamAndDecode(fileItem.getString("UTF-8"), "", charset));
+                } else {
+                    file = fileItem;
+                }
+            }
+        } catch (FileUploadException e) {
+            e.printStackTrace();
+        }
 
         /**
          * Parsing and securing all required parameters.
          */
         // Parameter that are already controled by GUI (no need to decode) --> We SECURE them
-        String type = policy.sanitize(request.getParameter("type"));
-        String system = policy.sanitize(request.getParameter("system"));
-        String environment = policy.sanitize(request.getParameter("environment"));
-        String country = policy.sanitize(request.getParameter("country"));
-        String database = policy.sanitize(request.getParameter("database"));
-        String databaseUrl = policy.sanitize(request.getParameter("databaseUrl"));
-        String databaseCsv = policy.sanitize(request.getParameter("databaseCsv"));
+        String type = policy.sanitize(fileData.get("type"));
+        String system = policy.sanitize(fileData.get("system"));
+        String environment = policy.sanitize(fileData.get("environment"));
+        String country = policy.sanitize(fileData.get("country"));
+        String database = policy.sanitize(fileData.get("database"));
+        String databaseUrl = policy.sanitize(fileData.get("databaseUrl"));
+        String databaseCsv = policy.sanitize(fileData.get("databaseCsv"));
         // Parameter that needs to be secured --> We SECURE+DECODE them
-        String name = ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("name"), "", charset); //this is mandatory
-        System.out.print(name);
-        String group = ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("group"), "", charset);
-        String description = ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("libdescription"), "", charset);
-        String service = ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("service"), "", charset);
+        String name = fileData.get("name"); //this is mandatory
+        String group = fileData.get("group");
+        String description = fileData.get("libdescription");
+        String service = fileData.get("service");
         // Parameter that we cannot secure as we need the html --> We DECODE them
-        String script = ParameterParserUtil.parseStringParamAndDecode(request.getParameter("script"), "", charset);
-        String servicePath = ParameterParserUtil.parseStringParamAndDecode(request.getParameter("servicepath"), "", charset);
-        String method = ParameterParserUtil.parseStringParamAndDecode(request.getParameter("method"), "", charset);
-        String envelope = ParameterParserUtil.parseStringParamAndDecode(request.getParameter("envelope"), "", charset);
-        String csvUrl = ParameterParserUtil.parseStringParamAndDecode(request.getParameter("csvUrl"), "", charset);
-        String separator = ParameterParserUtil.parseStringParamAndDecode(request.getParameter("separator"), "", charset);
+        String script = fileData.get("script");
+        String servicePath = fileData.get("servicepath");
+        String method = fileData.get("method");
+        String envelope = fileData.get("envelope");
+        String csvUrl = fileData.get("csvUrl");
+        String separator = fileData.get("separator");
+        String activateAutoSubdata = fileData.get("subdataCheck");
 
         Integer testdatalibid = 0;
         boolean testdatalibid_error = true;
         try {
-            if (request.getParameter("testdatalibid") != null && !request.getParameter("testdatalibid").isEmpty()) {
-                testdatalibid = Integer.valueOf(request.getParameter("testdatalibid"));
+            if (fileData.get("testdatalibid") != null && !fileData.get("testdatalibid").isEmpty()) {
+                testdatalibid = Integer.valueOf(fileData.get("testdatalibid"));
                 testdatalibid_error = false;
             }
         } catch (NumberFormatException ex) {
@@ -163,7 +202,17 @@ public class UpdateTestDataLib extends HttpServlet {
                      * The service was able to perform the query and confirm the
                      * object exist, then we can update it.
                      */
+
                     TestDataLib lib = (TestDataLib) resp.getItem();
+
+                    String fileName = lib.getCsvUrl();
+                    if (file != null) {
+                        ans = libService.uploadFile(lib.getTestDataLibID(), file);
+                        if (ans.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {
+                            fileName = file.getName();
+                        }
+                    }
+
                     lib.setName(name);
                     lib.setType(type);
                     lib.setGroup(group);
@@ -179,7 +228,11 @@ public class UpdateTestDataLib extends HttpServlet {
                     lib.setMethod(method);
                     lib.setEnvelope(envelope);
                     lib.setDatabaseCsv(databaseCsv);
-                    lib.setCsvUrl(csvUrl);
+                    if (file == null) {
+                        lib.setCsvUrl(csvUrl);
+                    } else {
+                        lib.setCsvUrl(File.separator + lib.getTestDataLibID() + File.separator + fileName);
+                    }
                     lib.setSeparator(separator);
                     lib.setLastModifier(request.getRemoteUser());
 
@@ -196,23 +249,49 @@ public class UpdateTestDataLib extends HttpServlet {
                                 + system + " environment: " + environment + " country: " + country, request);
                     }
 
-                    // Getting list of SubData from JSON Call
-                    if (request.getParameter("subDataList") != null) {
-                        JSONArray objSubDataArray = new JSONArray(request.getParameter("subDataList"));
-                        List<TestDataLibData> tdldList = new ArrayList();
-                        tdldList = getSubDataFromParameter(request, appContext, testdatalibid, objSubDataArray);
+                    List<TestDataLibData> tdldList = new ArrayList();
 
-                        // Update the Database with the new list.
-                        ans = tdldService.compareListAndUpdateInsertDeleteElements(testdatalibid, tdldList);
-                        finalAnswer = AnswerUtil.agregateAnswer(finalAnswer, (Answer) ans);
+                    // Getting list of SubData from JSON Call
+                    if (fileData.get("subDataList") != null) {
+                        JSONArray objSubDataArray = new JSONArray(fileData.get("subDataList"));
+                        tdldList = getSubDataFromParameter(request, appContext, testdatalibid, objSubDataArray);
                     }
 
+                    // When File has just been uploaded to servlet and flag to load the subdata value has been checked, we will parse it in order to automatically feed the subdata.
+                    if (file != null && activateAutoSubdata.equals("1")) {
+                        String str = "";
+                        try(BufferedReader reader = new BufferedReader(new FileReader(parameterService.getParameterStringByKey("cerberus_testdatalibcsv_path", "", null) + lib.getCsvUrl()));) {
+                            // First line of the file is split by separator.
+                            str = reader.readLine();
+                            String[] subData = (!lib.getSeparator().isEmpty()) ? str.split(lib.getSeparator()) : str.split(",");
+                            // We take the subdata from the servlet input.
+                            TestDataLibData firstLine = tdldList.get(0);
+                            tdldList = new ArrayList();
+                            firstLine.setColumnPosition("1");
+                            tdldList.add(firstLine);
+                            int i = 1;
+                            for (String item : subData) {
+                                String subdataName = "SUBDATA" + i;
+                                TestDataLibData tdld = tdldFactory.create(null, testdatalibid, subdataName, item, null, null, Integer.toString(i), null);
+                                tdldList.add(tdld);
+                                i++;
+                            }
+
+                            // Update the Database with the new list.
+                        } finally {
+                            try {
+                                file.getInputStream().close();
+                            } catch (Throwable ignore) {
+                            }
+                        }
+                    }
+                    ans = tdldService.compareListAndUpdateInsertDeleteElements(testdatalibid, tdldList);
+                    finalAnswer = AnswerUtil.agregateAnswer(finalAnswer, (Answer) ans);
                 }
 
             }
             jsonResponse.put("messageType", finalAnswer.getResultMessage().getMessage().getCodeString());
             jsonResponse.put("message", finalAnswer.getResultMessage().getDescription());
-
             response.getWriter().print(jsonResponse);
             response.getWriter().flush();
 

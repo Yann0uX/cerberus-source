@@ -10,9 +10,8 @@ This is the APi that can be used on the test perimeter (getting testcase informa
 | /AddToExecutionQueue 
 | Allow to insert testcase execution into Cerberus Queue for execution 
 v| /AddToExecutionQueue 
-**/AddToExecutionQueueV001**
-
-| /GetCampaignExecutionsCommand | TBD. | **/GetCampaignExecutionsCommand**
+/AddToExecutionQueueV001
+**/AddToExecutionQueueV002**
 
 | /GetTagExecutions | TBD. | **/GetTagExecutions**
 
@@ -29,7 +28,8 @@ To be used for monitoring purpose.
 | Used to provide various execution counters as well as a global OK or KO status based on the number and status of the execution done on a specific tag. 
 v| /ResultCI 
 /ResultCIV001 
-**/ResultCIV002**
+/ResultCIV002
+**/ResultCIV003**
 
 |=== 
 

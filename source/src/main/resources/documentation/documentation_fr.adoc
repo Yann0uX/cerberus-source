@@ -283,6 +283,14 @@ include::include/{lang}/{file-to-include}[]
 :file-to-include: installation_externaltools_sikuli_{lang}.adoc
 include::include/{lang}/{file-to-include}[]
 
+== Cloud
+:file-to-include: installation_externaltools_cloud_{lang}.adoc
+include::include/{lang}/{file-to-include}[]
+
+=== Browserstack
+:file-to-include: installation_externaltools_cloud_browserstack_{lang}.adoc
+include::include/{lang}/{file-to-include}[]
+
 = Maintenance
 :file-to-include: maintenance_introduction_{lang}.adoc
 include::include/{lang}/{file-to-include}[]
@@ -329,6 +337,18 @@ link:{repo-url}/{file-to-include}[image:edit-doc.png[FR,20,20]^] _{contribution-
 
 == 3.0
 :file-to-include: changelog_3.0_en.adoc
+include::include/en/{file-to-include}[]
+
+link:{repo-url}/{file-to-include}[image:edit-doc.png[FR,20,20]^] _{contribution-message}_
+
+== 3.1
+:file-to-include: changelog_3.1_en.adoc
+include::include/en/{file-to-include}[]
+
+link:{repo-url}/{file-to-include}[image:edit-doc.png[FR,20,20]^] _{contribution-message}_
+
+== 3.2
+:file-to-include: changelog_3.2_en.adoc
 include::include/en/{file-to-include}[]
 
 link:{repo-url}/{file-to-include}[image:edit-doc.png[FR,20,20]^] _{contribution-message}_

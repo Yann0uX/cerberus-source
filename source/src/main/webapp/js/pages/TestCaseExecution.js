@@ -20,17 +20,97 @@
 $.when($.getScript("js/global/global.js")).then(function () {
     $(document).ready(function () {
         var stepList = [];
-        var executionId = GetURLParameter("executionId");
-        /* global */ sockets = [];
-        initPage(executionId);
-        loadExecutionInformation(executionId, stepList, sockets);
+        var doc = new Doc();
+        displayHeaderLabel(doc);
+        displayFooter(doc);
+        displayPageLabel(doc);
 
-        $('[data-toggle="popover"]').popover({
-            'placement': 'auto',
-            'container': 'body'}
-        );
+        var executionId = GetURLParameter("executionId");
+        var executionQueueId = GetURLParameter("executionQueueId");
+         
+        if (isEmpty(executionId)) {
+            // executionId parameter is not feed so we probably want to see the queue status.
+            $("#TestCaseButton").hide();
+            $("#RefreshQueueButton").show();
+            $("#refreshQueue").click(function () {
+                loadExecutionQueue(executionQueueId);
+            });
+            $("#editQueue").click(function () {
+                openModalTestCaseExecutionQueue(executionQueueId, "EDIT");
+            });
+
+            loadExecutionQueue(executionQueueId);
+            // Read TestCaseExecutionQueue
+
+        } else {
+            $("#TestCaseButton").show();
+            $("#RefreshQueueButton").hide();
+            /* global */ sockets = [];
+            initPage(executionId);
+            loadExecutionInformation(executionId, stepList, sockets);
+
+            $('[data-toggle="popover"]').popover({
+                'placement': 'auto',
+                'container': 'body'}
+            );
+        }
     });
 });
+
+// Add the testCase to the page title (<head>)
+function updatePageTitle(testcase, doc){
+	if (typeof testcase !== 'undefined') {
+		if (testcase != null ) {
+			if (doc === undefined){var doc = new Doc();}
+			$("#pageTitle").text(doc.getDocLabel("page_executiondetail", "title") + " - " + testcase);
+		}
+	}
+}
+
+
+function loadExecutionQueue(executionQueueId) {
+
+    $.ajax({
+        url: "ReadTestCaseExecutionQueue",
+        method: "GET",
+        data: "queueid=" + executionQueueId,
+        datatype: "json",
+        async: true,
+        success: function (data) {
+            if (data.messageType === "OK") {
+                var tceq = data.contentTable;
+                
+                var tc = tceq.testCase;   
+                updatePageTitle(tc);
+                
+                var configPanel = $("#testCaseConfig");
+                configPanel.find("#idlabel").text("0");
+                $("[name='Separator']").text(" - ");
+                configPanel.find("#country").text(tceq.country);
+                configPanel.find("#environment").text(tceq.environment);
+                configPanel.find("#test").text(tceq.test);
+                configPanel.find("#testcase").text(tceq.testCase);
+                configPanel.find("#exReturnMessage").text(tceq.comment);
+                configPanel.find("#controlstatus").text("QU (" + tceq.state + ")");
+                // Hide the rest of the screen that will not be feed.
+                $("#NavtabsScriptEdit").hide();
+                $("#testCaseDetails").hide();
+                $(".progress").hide();
+                if (tceq.state === "QUEUED") {
+                    configPanel.find("#tcDescription").html("Still <span style='color:red;'>" + tceq.nbEntryInQueueToGo + "</span> execution(s) in the Queue before execution start.");
+                } else {
+                    configPanel.find("#tcDescription").html("");
+                }
+                if (tceq.exeId > 0) {
+                    var url = "./TestCaseExecution.jsp?executionId=" + tceq.exeId;
+                    //console.info("redir : " + url);
+                    window.location = url;
+                }
+            }
+        }
+    });
+}
+
 
 //global bool that say if the execution is manual
 var isTheExecutionManual = false;
@@ -44,7 +124,10 @@ function loadExecutionInformation(executionId, stepList, sockets) {
         async: true,
         success: function (data) {
             var tce = data.testCaseExecution;
-           
+            
+            var tc=tce.testcase;
+            updatePageTitle(tc);
+
             //store in a global var if the manualExecution is set to yes to double check with the control status
             if (tce.manualExecution === "Y")
                 isTheExecutionManual = true;
@@ -56,7 +139,7 @@ function loadExecutionInformation(executionId, stepList, sockets) {
                 parser.href = window.location.href;
 
                 var protocol = "ws:";
-                if (parser.protocol == "https:") {
+                if (parser.protocol === "https:") {
                     protocol = "wss:";
                 }
                 var path = parser.pathname.split("ExecutionDetail2")[0];
@@ -93,14 +176,9 @@ function loadExecutionInformation(executionId, stepList, sockets) {
 }
 
 function initPage(id) {
-
-    var doc = new Doc();
+	
     var height = $("nav.navbar.navbar-inverse.navbar-static-top").outerHeight(true) + $("div.alert.alert-warning").outerHeight(true) + $(".page-title-line").outerHeight(true) - 10;
-    
-    if(window.matchMedia("(max-width: 768px)").matches){
-    	$('#divPanelDefault').affix({offset: {top: height}});
-    }
-    
+
     var wrap = $(window);
 
     wrap.on("scroll", function (e) {
@@ -109,13 +187,14 @@ function initPage(id) {
 
     $("#editTcInfo").attr("disabled", true);
     $("#runTestCase").attr("disabled", true);
+    $("#rerunTestCase").attr("disabled", true);
     $("#lastExecution").attr("disabled", true);
 
     $("#runOld").click(function () {
         window.location = "TestCaseExecution.jsp?executionId=" + id;
     });
 
-    $("#editTag").click(function () {
+    $("#editTags").click(function () {
         $(this).hide();
         $("#saveTag").show();
         $("#testCaseDetails #tag").attr("readonly", false);
@@ -130,14 +209,10 @@ function initPage(id) {
             success: function (data) {
                 $("#saveTag").attr("disabled", false);
                 $("#saveTag").hide();
-                $("#editTag").show();
+                $("#editTags").show();
             }
         })
     });
-
-    displayHeaderLabel(doc);
-    displayFooter(doc);
-    displayPageLabel(doc);
 
     $("#inheritedPropPanelWrapper").hide();
     $("[name='buttonSave']").hide();
@@ -148,11 +223,10 @@ function initPage(id) {
 }
 
 function displayPageLabel(doc) {
-
-    $("#pageTitle").text(doc.getDocLabel("page_executiondetail", "title"));
+	
+    //$("#pageTitle").text(doc.getDocLabel("page_executiondetail", "title"));
     $(".alert.alert-warning span").text(doc.getDocLabel("page_global", "beta_message"));
     $(".alert.alert-warning button").text(doc.getDocLabel("page_global", "old_page"));
-    $("#ExecutionByTag").html("<span class='glyphicon glyphicon-tag'></span> " + doc.getDocLabel("page_executiondetail", "see_execution_tag"));
     $("#more").text(doc.getDocLabel("page_executiondetail", "more_detail"));
     $("#testCaseDetails label[for='application']").text(doc.getDocLabel("page_executiondetail", "application"));
     $("#testCaseDetails label[for='browser']").text(doc.getDocLabel("page_executiondetail", "browser"));
@@ -176,18 +250,31 @@ function displayPageLabel(doc) {
     $("#testCaseDetails label[for='screenSize']").text(doc.getDocLabel("page_executiondetail", "screensize"));
     $("#testCaseDetails label[for='userAgent']").text(doc.getDocLabel("page_executiondetail", "userAgent"));
     $("#testCaseDetails label[for='tag']").text(doc.getDocLabel("page_executiondetail", "tag"));
-    $("#testCaseDetails label[for='verbose']").text(doc.getDocLabel("page_executiondetail", "verbose"));
+    $("#testCaseDetails label[for='exetest']").text(doc.getDocLabel("test", "Test"));
+    $("#testCaseDetails label[for='exetestcase']").text(doc.getDocLabel("testcase", "TestCase"));
+    $("#testCaseDetails label[for='testcaseversion']").text(doc.getDocLabel("testcase", "TestCaseVersion"));
+    $("#testCaseDetails label[for='system']").text(doc.getDocLabel("invariant", "SYSTEM"));
+    $("#testCaseDetails label[for='robotdecli']").text(doc.getDocLabel("robot", "robotdecli"));
     $("#testCaseDetails label[for='build']").text(doc.getDocLabel("page_executiondetail", "build"));
     $("#testCaseDetails label[for='version']").text(doc.getDocLabel("page_executiondetail", "version"));
     $("#steps h3").text(doc.getDocLabel("page_executiondetail", "steps"));
     $("#actions h3").text(doc.getDocLabel("page_global", "columnAction"));
+
+    $("#btnGroupDrop1").html(doc.getDocLabel("page_executiondetail", "goto") + " <span class='caret'></span>");
+    $("#lastExecution").html("<span class='glyphicon glyphicon-list'></span> " + doc.getDocLabel("page_executiondetail", "lastexecution"));
+    $("#lastExecutionwithEnvCountry").html("<span class='glyphicon glyphicon-list'></span> " + doc.getDocLabel("page_executiondetail", "lastexecutionwithenvcountry"));
+    $("#ExecutionByTag").html("<span class='glyphicon glyphicon-tag'></span> " + doc.getDocLabel("page_executiondetail", "see_execution_tag"));
+    $("#ExecutionQueue").html("<span class='glyphicon glyphicon-eye-open'></span> " + doc.getDocLabel("page_executiondetail", "see_executionq"));
+    $("#ExecutionQueueByTag").html("<span class='glyphicon glyphicon-list'></span> " + doc.getDocLabel("page_executiondetail", "see_executionq_tag"));
+
+    $("#btnGroupDrop2").html(doc.getDocLabel("page_executiondetail", "run") + " <span class='caret'></span>");
+    $("#runTestCase").html("<span class='glyphicon glyphicon-play'></span> " + doc.getDocLabel("page_executiondetail", "runtc"));
+    $("#rerunTestCase").html("<span class='glyphicon glyphicon-forward'></span> " + doc.getDocLabel("page_executiondetail", "reruntc"));
+    $("#rerunFromQueue").html("<span class='glyphicon glyphicon-forward'></span> " + doc.getDocLabel("page_executiondetail", "reruntcqueue"));
     $("#editTcInfo").html("<span class='glyphicon glyphicon-new-window'></span> " + doc.getDocLabel("page_executiondetail", "edittc"));
-    $("#editTcHeader").html("<span class='glyphicon glyphicon-pencil'></span> " + doc.getDocLabel("page_testcaselist", "btn_edit"));
+    $("#editTcHeader").html("<span class='glyphicon glyphicon-pencil'></span> " + doc.getDocLabel("page_executiondetail", "edittch"));
     $("#editTcStepInfo").html("<span class='glyphicon glyphicon-new-window'></span> " + doc.getDocLabel("page_executiondetail", "edittcstep"));
-    $("#runTestCase").html("<span class='glyphicon glyphicon-forward'></span> " + doc.getDocLabel("page_executiondetail", "runtc"));
     $("#saveTestCaseExecution").html("<span class='glyphicon glyphicon-save'></span> " + doc.getDocLabel("page_executiondetail", "save"));
-    $("#lastExecution").html("<span class='glyphicon glyphicon-backward'></span> " + doc.getDocLabel("page_executiondetail", "lastexecution"));
-    $("#lastExecutionwithEnvCountry").html("<span class='glyphicon glyphicon-backward'></span> " + doc.getDocLabel("page_executiondetail", "lastexecutionwithenvcountry"));
 }
 
 function updatePage(data, stepList) {
@@ -195,52 +282,62 @@ function updatePage(data, stepList) {
     sortData(data.testCaseStepExecutionList);
 
     if (data.testCaseObj === undefined) {
-        console.info("testcase not exist.");
+        //console.info("testcase not exist.");
         $("#editTcInfo").attr("disabled", true);
         $("#editTcInfo").attr("href", "#");
         $("#editTcStepInfo").attr("disabled", true);
-        $("#editTcStepInfo").attr("href", "#");
-        $("#editTcToggleButton").unbind("click");
+        $("#editTcStepInfo").parent().attr("href", "#");
+        $("#btnGroupDrop4").unbind("click");
         $("#runTestCase").attr("disabled", true);
-        $("#runTestCase").attr("href", "#");
+        $("#runTestCase").parent().attr("href", "#");
+        $("#rerunTestCase").attr("disabled", true);
+        $("#rerunTestCase").parent().attr("href", "#");
     } else {
         $("#editTcInfo").attr("disabled", false);
         $("#editTcInfo").attr("href", "TestCaseScript.jsp?test=" + data.test + "&testcase=" + data.testcase);
         $("#editTcStepInfo").attr("disabled", false);
-        $("#editTcStepInfo").attr("href", "TestCaseScript.jsp?test=" + data.test + "&testcase=" + data.testcase);
-        $("#editTcToggleButton").click(function () {
+        $("#editTcStepInfo").parent().attr("href", "TestCaseScript.jsp?test=" + data.test + "&testcase=" + data.testcase);
+        $("#btnGroupDrop4").click(function () {
             setLinkOnEditTCStepInfoButton();
         });
 
         $("#runTestCase").attr("disabled", false);
-        $("#runTestCase").attr("href", "RunTests.jsp?test=" + data.test + "&testcase=" + data.testcase + "&country=" + data.country + "&environment=" + data.environment + "&browser=" + data.browser + "&tag=" + data.tag);
+        $("#runTestCase").parent().attr("href", "RunTests.jsp?test=" + data.test + "&testcase=" + data.testcase);
+        $("#rerunTestCase").attr("disabled", false);
+        $("#rerunTestCase").parent().attr("href", "RunTests.jsp?test=" + data.test + "&testcase=" + data.testcase + "&country=" + data.country + "&environment=" + data.environment + "&browser=" + data.browser + "&tag=" + data.tag);
     }
 
     $("#lastExecution").attr("disabled", false);
-    $("#lastExecution").attr("href", "TestCaseExecutionList.jsp?test=" + data.test + "&testcase=" + data.testcase);
-
-    $("#ExecutionQueueByTag").attr("href", "TestCaseExecutionQueueList.jsp?tag="+data.tag);
-
-    $("#ExecutionByTag").attr("href", "ReportingExecutionByTag.jsp?Tag=" + data.tag);
-    $("#lastExecutionwithEnvCountry").attr("href", "TestCaseExecutionList.jsp?test=" + data.test + "&testcase=" + data.testcase + "&country=" + data.country + "&environment=" + data.environment + "&application=" + data.application);
+    $("#lastExecution").parent().attr("href", "TestCaseExecutionList.jsp?test=" + data.test + "&testcase=" + data.testcase);
+    $("#lastExecutionwithEnvCountry").attr("disabled", false);
+    $("#lastExecutionwithEnvCountry").parent().attr("href", "TestCaseExecutionList.jsp?test=" + data.test + "&testcase=" + data.testcase + "&country=" + data.country + "&environment=" + data.environment + "&application=" + data.application);
+    if (!isEmpty(data.tag)) {
+        $("#ExecutionByTag").parent().attr("href", "ReportingExecutionByTag.jsp?Tag=" + data.tag);
+        $("#ExecutionQueueByTag").parent().attr("href", "TestCaseExecutionQueueList.jsp?tag=" + data.tag);
+    } else {
+        $("#ExecutionByTag").attr("disabled", true);
+        $("#ExecutionQueueByTag").attr("disabled", true);
+    }
 
     if (isEmpty(data.queueId) || (data.queueId === 0)) {
         $("#ExecutionQueue").attr("disabled", "disabled");
-        $("#ExecutionQueueDup").attr("disabled", "disabled");
         $("#ExecutionQueue").unbind("click");
-        $("#ExecutionQueueDup").unbind("click");
+        $("#rerunFromQueue").attr("disabled", "disabled");
+        $("#rerunFromQueue").unbind("click");
     } else {
+        $("#ExecutionQueue").attr("disabled", false);
         $("#ExecutionQueue").click(function () {
             openModalTestCaseExecutionQueue(data.queueId, 'EDIT');
         });
-        $("#ExecutionQueueDup").click(function () {
+        $("#rerunFromQueue").attr("disabled", false);
+        $("#rerunFromQueue").click(function () {
             openModalTestCaseExecutionQueue(data.queueId, 'DUPLICATE');
         });
     }
 
     // Adding all media attached to execution.
     var fileContainer = $("#testCaseConfig #tcFileContentField");
-    addFileLink(data.fileList, fileContainer);
+    addFileLink(data.fileList, fileContainer, isTheExecutionManual);
 
     var myURL = $("#bugID").data("appBugURL");
     if (myURL === undefined) {
@@ -296,14 +393,15 @@ function updatePage(data, stepList) {
 function setConfigPanel(data) {
 
     var configPanel = $("#testCaseConfig");
+    $("[name='Separator']").text(" - ");
     configPanel.find("#idlabel").text(data.id);
     configPanel.find("#test").text(data.test);
     configPanel.find("#testcase").text(data.testcase);
     configPanel.find("#exReturnMessage").text(data.controlMessage);
     configPanel.find("#controlstatus").text(data.controlStatus);
-    
-    $("#editTcHeader").unbind("click").click(function(){
-    	openModalTestCase(data.test,data.testcase,"EDIT")
+
+    $("#editTcHeader").unbind("click").click(function () {
+        openModalTestCase(data.test, data.testcase, "EDIT")
     })
 
     configPanel.find("#environment").text(data.environment);
@@ -318,9 +416,11 @@ function setConfigPanel(data) {
     configPanel.find("input#environmentData").val(data.environmentData);
     configPanel.find("input#status").val(data.status);
 
-    configPanel.find("input#end").val(new Date(data.end));
+    configPanel.find("input#end").val(getDate(data.end));
     configPanel.find("input#finished").val(data.finished);
     configPanel.find("input#id").val(data.id);
+    configPanel.find("input#controlstatus2").val(data.controlStatus);
+    configPanel.find("textarea#controlmessage").val(data.controlMessage);
     configPanel.find("input#ip").val(data.ip);
     configPanel.find("input#port").val(data.port);
     configPanel.find("input#platform").val(data.platform);
@@ -332,7 +432,11 @@ function setConfigPanel(data) {
     configPanel.find("input#start").val(new Date(data.start));
     configPanel.find("input#tag").val(data.tag);
     configPanel.find("input#url").val(data.url);
-    configPanel.find("input#verbose").val(data.verbose);
+    configPanel.find("input#exetest").val(data.test);
+    configPanel.find("input#exetestcase").val(data.testcase);
+    configPanel.find("input#testcaseversion").val(data.testCaseVersion);
+    configPanel.find("input#system").val(data.system);
+    configPanel.find("input#robotdecli").val(data.robotDecli);
     configPanel.find("input#version").val(data.version);
 
     configPanel.find("input#conditionOperTC").val(data.conditionOper);
@@ -360,8 +464,9 @@ function removeColorClass(element) {
  * @returns {undefined}
  */
 function showSaveTestCaseExecutionButton() {
-    $("#saveTestCaseExecution").css("display", "inherit");
+    $("#saveTestCaseExecution").attr("disabled", false);
 }
+
 /*
  * 
  * set up click function if the button is visible ( visible if alt least one action or step or control have a controlStatus NE )
@@ -369,44 +474,42 @@ function showSaveTestCaseExecutionButton() {
  * @returns {undefined}
  */
 function setUpClickFunctionToSaveTestCaseExecutionButton(data) {
-    if ($("#saveTestCaseExecution").is(":visible")) {
-        $("#saveTestCaseExecution").click(function () {
-            saveExecution(data);
-        });
-    }
+    $("#saveTestCaseExecution").click(function () {
+        saveExecution(data);
+    });
 }
 
 
 function setLinkOnEditTCStepInfoButton() {
     var currentStep = $('#stepInfo');
-    $("#editTcStepInfo").attr("href", "TestCaseScript.jsp?test=" + currentStep.attr('test') + "&testcase=" + currentStep.attr('testcase') + "&step=" + currentStep.attr('step'));
+    $("#editTcStepInfo").parent().attr("href", "TestCaseScript.jsp?test=" + currentStep.attr('test') + "&testcase=" + currentStep.attr('testcase') + "&step=" + currentStep.attr('step'));
 }
 
 function setLoadBar(data) {
     var total = 0;
     var ended = 0;
-    if (data.testCaseObj != undefined && data.testCaseObj.testCaseStepList != undefined) {
+    if (data.testCaseObj !== undefined && data.testCaseObj.testCaseStepList !== undefined) {
         for (var i = 0; i < data.testCaseObj.testCaseStepList.length; i++) {
             var step = data.testCaseObj.testCaseStepList[i];
             var stepExec = data.testCaseStepExecutionList[i];
-            if (stepExec != undefined && stepExec.returnCode != "PE") {
+            if (stepExec !== undefined && stepExec.returnCode !== "PE") {
                 ended += 1;
             }
             total += 1;
             for (var j = 0; j < step.testCaseStepActionList.length; j++) {
                 var action = step.testCaseStepActionList[j];
-                if (stepExec != undefined) {
+                if (stepExec !== undefined) {
                     var actionExec = stepExec.testCaseStepActionExecutionList[j];
-                    if (actionExec != undefined && actionExec.returnCode != "PE") {
+                    if (actionExec !== undefined && actionExec.returnCode !== "PE") {
                         ended += 1;
                     }
                 }
                 total += 1;
                 for (var k = 0; k < action.testCaseStepActionControlList.length; k++) {
                     var control = action.testCaseStepActionControlList[k];
-                    if (stepExec != undefined && actionExec != undefined) {
+                    if (stepExec !== undefined && actionExec !== undefined) {
                         var controlExec = actionExec.testCaseStepActionControlExecutionList[k];
-                        if (controlExec != undefined && controlExec.returnCode != "PE") {
+                        if (controlExec !== undefined && controlExec.returnCode !== "PE") {
                             ended += 1;
                         }
                     }
@@ -428,7 +531,7 @@ function updateDataBarVisual(controlStatus, progress = 100) {
         return (className.match(/(^|\s)progress-bar-\S+/g) || []).join(' ');
     });
 
-    if (controlStatus != "PE") {
+    if (controlStatus !== "PE") {
         if (controlStatus === "OK") {
             $("#progress-bar").addClass("progress-bar-success");
         } else if (controlStatus === "KO") {
@@ -518,8 +621,8 @@ function drawProperty(property, table) {
 
     propertyName.append(property.property);
 
-    contentfirstRow.append($("<div class='col-sm-2'>").append(propertyName));
-    contentfirstRow.append($("<div class='col-sm-10'>").attr("id", "contentField").append(descriptionField).append(returnMessageField));
+    contentfirstRow.append($("<div class='col-sm-3' title='" + property.property + "'>").append(propertyName));
+    contentfirstRow.append($("<div class='col-sm-9'>").attr("id", "contentField").append(descriptionField).append(returnMessageField));
 
     contentField.append(contentfirstRow);
     firstRow.append(contentField);
@@ -555,9 +658,9 @@ function drawProperty(property, table) {
     }
 
     // Starting to reduce the size of the row by the length of elements.
-    $(row).find("#contentField").removeClass("col-sm-10").addClass("col-sm-" + (10 - property.fileList.length));
+    $(row).find("#contentField").removeClass("col-sm-10").addClass("col-sm-" + (9 - property.fileList.length));
     // Adding all media attached to action execution.
-    addFileLink(property.fileList, $(row).find("#contentRow"));
+    addFileLink(property.fileList, $(row).find("#contentRow"), isTheExecutionManual);
 
     htmlElement.prepend(button);
     htmlElement.prepend(row);
@@ -864,7 +967,6 @@ function createStepList(data, stepList) {
 
 function Step(json, stepList, id) {
     this.stepActionContainer = $("<div></div>").addClass("list-group").css("display", "none");
-
     this.description = json.description;
     this.end = json.end;
     this.fullEnd = json.fullEnd;
@@ -898,6 +1000,7 @@ function Step(json, stepList, id) {
     this.toDelete = false;
 
     this.html = $("<a href='#'></a>").addClass("list-group-item row").css("margin-left", "0px").css("margin-right", "0px");
+    $(this.html).data("index", id)
     if (this.test === "Pre Testing") {
         var stepDesc = "[PRE]  " + this.description + "  (" + this.timeElapsed + ")";
     } else {
@@ -1218,6 +1321,7 @@ function Action(json, parentStep) {
     }
 
     this.toDelete = false;
+    $(this.html).data("index", this.sort - 1)
 }
 
 Action.prototype.draw = function (idMotherStep, id) {
@@ -1273,7 +1377,6 @@ Action.prototype.draw = function (idMotherStep, id) {
     // Starting to reduce the size of the row by the length of elements.
     $(header).find("#contentField").removeClass("col-xs-12").addClass("col-xs-" + (12 - this.fileList.length));
     // Adding all media attached to action execution.
-    addFileLink(this.fileList, $(header).find(".row"));
 
     htmlElement.click(function () {
         if ($(this).find(".glyphicon-chevron-down").length > 0) {
@@ -1288,6 +1391,7 @@ Action.prototype.draw = function (idMotherStep, id) {
     fullActionElement.append(content);
     this.parentStep.stepActionContainer.append(fullActionElement);
     //this.parentStep.stepActionContainer.append(content);
+    addFileLink(this.fileList, $(header).find(".row"), isTheExecutionManual, idMotherStep);
 };
 
 Action.prototype.setControlList = function (controlList, idMotherStep, idMotherAction) {
@@ -1357,22 +1461,56 @@ Action.prototype.generateHeader = function (id) {
     /**
      * If returnCode is NE, display button, else display elapsed time
      */
-    if (this.returnCode === "NE" && isTheExecutionManual) {
+    if (isTheExecutionManual) {
 
         var buttonFA = $($("<button>").addClass("btn btn-warning btn-inverse").attr("type", "button").text("FA"));
         var buttonOK = $($("<button>").addClass("btn btn-success btn-inverse").attr("type", "button").text("OK"));
+        var buttonUpload = $($("<button>").addClass("btn btn-upload btn-info btn-inverse").attr("type", "button").text("UPLOAD"));
+
         buttonOK.click(function (event) {
             event.preventDefault();
             event.stopPropagation();
             triggerActionExecution(this, id, "OK");
+            $(this).parent().parent().find(buttonUpload).remove()
+            $(this).parent().parent().find(".col-sm-10").removeClass("col-sm-10").addClass("col-sm-8")
+
+            if ($(this).parent().parent().find(".btn-upload").length == 0) {
+                $(this).parent().parent().append(buttonUpload)
+            }
+            buttonUpload.click(function (event) {
+                var indexStep = $("#nav-execution").find(".active").data("index");
+                var indexAction = $(this).parents("a").data('index')
+                var currentActionOrControl = getScriptInformationOfStep()[indexStep]["actionArr"][indexAction]
+                var idex = $("#idlabel").text()
+                openModalFile(true, currentActionOrControl, "ADD", idex)
+                event.preventDefault()
+                event.stopPropagation()
+            })
+            $(buttonUpload).css("float", "right")
         });
         buttonFA.click(function (event) {
             event.preventDefault();
             event.stopPropagation();
             triggerActionExecution(this, id, "FA");
+            $(this).parent().parent().find(buttonUpload).remove()
+            $(this).parent().parent().find(".col-sm-10").removeClass("col-sm-10").addClass("col-sm-8")
+            if ($(this).parent().parent().find(".btn-upload").length == 0) {
+                $(this).parent().parent().append(buttonUpload)
+            }
+            buttonUpload.click(function (event) {
+                var indexStep = $("#nav-execution").find(".active").data("index");
+                var indexAction = $(this).parents("a").data('index')
+                var currentActionOrControl = getScriptInformationOfStep()[indexStep]["actionArr"][indexAction]
+                var idex = $("#idlabel").text()
+                openModalFile(true, currentActionOrControl, "ADD", idex)
+                event.preventDefault()
+                event.stopPropagation()
+            })
 
+            $(buttonUpload).css("float", "right")
         });
-        contentField.append($("<div class='col-sm-2'>").addClass("btn-group btn-group-xs").attr("role", "group").append(buttonOK).append(buttonFA));
+
+        contentField.append($("<div class='col-xs-2'>").addClass("btn-group btn-group-xs").attr("role", "group").append(buttonOK).append(buttonFA));
         //hide save button
         showSaveTestCaseExecutionButton();
     } else {
@@ -1738,24 +1876,24 @@ Action.prototype.generateContent = function () {
     conditionVal1Field.val(this.conditionVal1);
     conditionVal2Field.val(this.conditionVal2);
 
-    row1.append($("<div></div>").addClass("col-xs-2").append(returncodeGroup));
-    row1.append($("<div></div>").addClass("col-xs-10").append(descGroup));
-    row2.append($("<div></div>").addClass("col-xs-2"));
-    row2.append($("<div></div>").addClass("col-xs-5").append(objectGroupInit));
-    row2.append($("<div></div>").addClass("col-xs-5").append(propertyGroupInit));
-    row3.append($("<div></div>").addClass("col-xs-2").append(actionGroup));
-    row3.append($("<div></div>").addClass("col-xs-5").append(objectGroup));
-    row3.append($("<div></div>").addClass("col-xs-5").append(propertyGroup));
-    row4.append($("<div></div>").addClass("col-xs-2").append(sortGroup));
-    row4.append($("<div></div>").addClass("col-xs-5").append(forceexecGroup));
-    row4.append($("<div></div>").addClass("col-xs-5").append(timeGroup));
-    row5.append($("<div></div>").addClass("col-xs-12").append(returnmessageGroup));
-    row6.append($("<div></div>").addClass("col-xs-2"));
-    row6.append($("<div></div>").addClass("col-xs-5").append(conditionVal1InitGroup));
-    row6.append($("<div></div>").addClass("col-xs-5").append(conditionVal2InitGroup));
-    row7.append($("<div></div>").addClass("col-xs-2").append(conditionOperGroup));
-    row7.append($("<div></div>").addClass("col-xs-5").append(conditionVal1Group));
-    row7.append($("<div></div>").addClass("col-xs-5").append(conditionVal2Group));
+    row1.append($("<div></div>").addClass("col-sm-2").append(returncodeGroup));
+    row1.append($("<div></div>").addClass("col-sm-10").append(descGroup));
+    row2.append($("<div></div>").addClass("col-sm-2"));
+    row2.append($("<div></div>").addClass("col-sm-5").append(objectGroupInit));
+    row2.append($("<div></div>").addClass("col-sm-5").append(propertyGroupInit));
+    row3.append($("<div></div>").addClass("col-sm-2").append(actionGroup));
+    row3.append($("<div></div>").addClass("col-sm-5").append(objectGroup));
+    row3.append($("<div></div>").addClass("col-sm-5").append(propertyGroup));
+    row4.append($("<div></div>").addClass("col-sm-2").append(sortGroup));
+    row4.append($("<div></div>").addClass("col-sm-5").append(forceexecGroup));
+    row4.append($("<div></div>").addClass("col-sm-5").append(timeGroup));
+    row5.append($("<div></div>").addClass("col-sm-12").append(returnmessageGroup));
+    row6.append($("<div></div>").addClass("col-sm-2"));
+    row6.append($("<div></div>").addClass("col-sm-5").append(conditionVal1InitGroup));
+    row6.append($("<div></div>").addClass("col-sm-5").append(conditionVal2InitGroup));
+    row7.append($("<div></div>").addClass("col-sm-2").append(conditionOperGroup));
+    row7.append($("<div></div>").addClass("col-sm-5").append(conditionVal1Group));
+    row7.append($("<div></div>").addClass("col-sm-5").append(conditionVal2Group));
 
     container.append(row1);
     container.append(row2);
@@ -1871,6 +2009,7 @@ function Control(json, parentAction) {
     this.toDelete = false;
 
     this.html = $("<a href='#'></a>").addClass("action-group control").css("margin-left", "0px");
+    $(this.html).data("index", this.sort - 1)
 }
 
 Control.prototype.draw = function (idMotherStep, idMotherAction, idControl) {
@@ -1918,7 +2057,7 @@ Control.prototype.draw = function (idMotherStep, idMotherAction, idControl) {
     // Starting to reduce the size of the row by the length of elements.
     $(header).find("#contentField").removeClass("col-xs-12").addClass("col-xs-" + (12 - this.fileList.length));
     // Adding all media attached to control execution.
-    addFileLink(this.fileList, $(header).find(".row"));
+    addFileLink(this.fileList, $(header).find(".row"), isTheExecutionManual, idMotherStep);
 
     $(this.parentAction.html).parent().append(htmlElement);
     $(this.parentAction.html).parent().append(content);
@@ -1968,18 +2107,52 @@ Control.prototype.generateHeader = function (id) {
         elapsedTime.append("...");
     }
 
-    if (this.returnCode === "NE" && isTheExecutionManual) {
+    if (isTheExecutionManual) {
         var buttonFA = $($("<button>").addClass("btn btn-danger btn-inverse").attr("type", "button").text("KO"));
         var buttonOK = $($("<button>").addClass("btn btn-success btn-inverse").attr("type", "button").text("OK"));
+        var buttonUpload = $($("<button>").addClass("btn btn-info btn-inverse").attr("type", "button").text("UPLOAD"));
+        $(buttonUpload).css("float", "right")
         buttonOK.click(function (event) {
             event.preventDefault();
             event.stopPropagation();
             triggerControlExecution(this, id, "OK");
+            $(this).parent().parent().find(buttonUpload).remove()
+            $(this).parent().parent().find(".col-xs-10").removeClass("col-xs-10").addClass("col-xs-8")
+            if ($(this).parent().parent().find(".btn-upload").length == 0) {
+                $(this).parent().parent().append(buttonUpload)
+            }
+            $(buttonUpload).click(function (event) {
+                var indexStep = $("#nav-execution").find(".active").data("index");
+                var indexAction = $(this).parents("a").parent().find(".action").data('index')
+                var indexControl = $(this).parents("a").data('index')
+                var currentActionOrControl = getScriptInformationOfStep()[indexStep]["actionArr"][indexAction]["controlArr"][indexControl]
+                var idex = $("#idlabel").text()
+                openModalFile(false, currentActionOrControl, "ADD", idex)
+                event.preventDefault()
+                event.stopPropagation()
+            })
+            $(buttonUpload).css("float", "right")
         });
         buttonFA.click(function (event) {
             event.preventDefault();
             event.stopPropagation();
             triggerControlExecution(this, id, "KO");
+            $(this).parent().parent().find(buttonUpload).remove()
+            $(this).parent().parent().find(".col-xs-10").removeClass("col-xs-10").addClass("col-xs-8")
+            if ($(this).parent().parent().find(".btn-upload").length == 0) {
+                $(this).parent().parent().append(buttonUpload)
+            }
+            $(buttonUpload).click(function (event) {
+                var indexStep = $("#nav-execution").find(".active").data("index");
+                var indexAction = $(this).parents("a").parent().find(".action").data('index')
+                var indexControl = $(this).parents("a").data('index')
+                var currentActionOrControl = getScriptInformationOfStep()[indexStep]["actionArr"][indexAction]["controlArr"][indexControl]
+                var idex = $("#idlabel").text()
+                openModalFile(false, currentActionOrControl, "ADD", idex)
+                event.preventDefault()
+                event.stopPropagation()
+            })
+            $(buttonUpload).css("float", "right")
         });
         contentField.append($("<div class='col-xs-2'>").addClass("btn-group btn-group-xs").attr("role", "group").append(buttonOK).append(buttonFA));
         showSaveTestCaseExecutionButton();
@@ -2143,24 +2316,24 @@ Control.prototype.generateContent = function () {
     conditionVal1Field.val(this.conditionVal1);
     conditionVal2Field.val(this.conditionVal2);
 
-    row1.append($("<div></div>").addClass("col-xs-2").append(returncodeGroup));
-    row1.append($("<div></div>").addClass("col-xs-10").append(descGroup));
-    row2.append($("<div></div>").addClass("col-xs-2"));
-    row2.append($("<div></div>").addClass("col-xs-5").append(controlValue1InitGroup));
-    row2.append($("<div></div>").addClass("col-xs-5").append(controlValue2InitGroup));
-    row3.append($("<div></div>").addClass("col-xs-2").append(controlTypeGroup));
-    row3.append($("<div></div>").addClass("col-xs-5").append(controlValue1Group));
-    row3.append($("<div></div>").addClass("col-xs-5").append(controlValue2Group));
-    row4.append($("<div></div>").addClass("col-xs-2").append(sortGroup));
-    row4.append($("<div></div>").addClass("col-xs-5").append(fatalGroup));
-    row4.append($("<div></div>").addClass("col-xs-5").append(timeGroup));
-    row5.append($("<div></div>").addClass("col-xs-12").append(returnmessageGroup));
-    row6.append($("<div></div>").addClass("col-xs-2"));
-    row6.append($("<div></div>").addClass("col-xs-5").append(conditionVal1InitGroup));
-    row6.append($("<div></div>").addClass("col-xs-5").append(conditionVal2InitGroup));
-    row7.append($("<div></div>").addClass("col-xs-2").append(conditionOperGroup));
-    row7.append($("<div></div>").addClass("col-xs-5").append(conditionVal1Group));
-    row7.append($("<div></div>").addClass("col-xs-5").append(conditionVal2Group));
+    row1.append($("<div></div>").addClass("col-sm-2").append(returncodeGroup));
+    row1.append($("<div></div>").addClass("col-sm-10").append(descGroup));
+    row2.append($("<div></div>").addClass("col-sm-2"));
+    row2.append($("<div></div>").addClass("col-sm-5").append(controlValue1InitGroup));
+    row2.append($("<div></div>").addClass("col-sm-5").append(controlValue2InitGroup));
+    row3.append($("<div></div>").addClass("col-sm-2").append(controlTypeGroup));
+    row3.append($("<div></div>").addClass("col-sm-5").append(controlValue1Group));
+    row3.append($("<div></div>").addClass("col-sm-5").append(controlValue2Group));
+    row4.append($("<div></div>").addClass("col-sm-2").append(sortGroup));
+    row4.append($("<div></div>").addClass("col-sm-5").append(fatalGroup));
+    row4.append($("<div></div>").addClass("col-sm-5").append(timeGroup));
+    row5.append($("<div></div>").addClass("col-sm-12").append(returnmessageGroup));
+    row6.append($("<div></div>").addClass("col-sm-2"));
+    row6.append($("<div></div>").addClass("col-sm-5").append(conditionVal1InitGroup));
+    row6.append($("<div></div>").addClass("col-sm-5").append(conditionVal2InitGroup));
+    row7.append($("<div></div>").addClass("col-sm-2").append(conditionOperGroup));
+    row7.append($("<div></div>").addClass("col-sm-5").append(conditionVal1Group));
+    row7.append($("<div></div>").addClass("col-sm-5").append(conditionVal2Group));
 
     container.append(row1);
     container.append(row2);
@@ -2213,56 +2386,126 @@ Control.prototype.getJsonData = function () {
     return json;
 };
 
+function changeClickIfManual(isTheExecutionManual, container, idStep, file, event) {
+    if (isTheExecutionManual) {
+        var idex = $("#idlabel").text()
+        if ($(container).parent().parent().parent().hasClass("action")) {
+            var indexAction = $(this).parents("a").data('index')
+            var currentActionOrControl = getScriptInformationOfStep()[idStep]["actionArr"][indexAction]
+            openModalFile(true, currentActionOrControl, "EDIT", idex, file, !isTheExecutionManual)
+        } else {
+            var indexAction = $(this).parents("a").parent().find(".action").data('index')
+            var indexControl = $(this).parents("a").data('index')
+            var currentActionOrControl = getScriptInformationOfStep()[idStep]["actionArr"][indexAction]["controlArr"][indexControl]
+            openModalFile(false, currentActionOrControl, "EDIT", idex, file, !isTheExecutionManual)
+        }
+        event.preventDefault()
+        event.stopPropagation()
+    } else {
+        openModalFile(null, null, "EDIT", null, file, !isTheExecutionManual)
+    }
+}
+
+
 // Function in order to add the Media files links into TestCase, step, action and control level.
-function addFileLink(fileList, container) {
+function addFileLink(fileList, container, manual, idStep) {
+    var auto = manual == true ? false : true;
     $(container).find($("div[name='mediaMiniature']")).remove();
     for (var i = 0; i < fileList.length; i++) {
+        let index = i
         if ((fileList[i].fileType === "JPG") || (fileList[i].fileType === "PNG")) {
-            var urlImage = "ReadTestCaseExecutionMedia?filename=" + fileList[i].fileName + "&filetype=" + fileList[i].fileType + "&filedesc=" + fileList[i].fileDesc;
+            var urlImage = "ReadTestCaseExecutionMedia?filename=" + fileList[i].fileName + "&filetype=" + fileList[i].fileType + "&filedesc=" + fileList[i].fileDesc + "&auto=" + auto;
             var fileDesc = fileList[i].fileDesc;
             var linkBox = $("<div name='mediaMiniature'>").addClass("col-xs-1").css("padding", "0px 7px 0px 7px")
                     .append(fileList[i].fileDesc).append($("<img>").attr("src", urlImage + "&h=30&w=60").css("max-height", "30px").css("max-width", "60px")
                     .click(function (e) {
-                        showPicture(fileDesc, urlImage);
+                        changeClickIfManual(isTheExecutionManual, container, idStep, fileList[index], e)
                         return false;
                     }));
             container.append(linkBox);
+
+
+
         } else if ((fileList[i].fileType === "HTML") || (fileList[i].fileType === "JSON") || (fileList[i].fileType === "TXT") || (fileList[i].fileType === "XML")) {
+
             var j = i;
-            var urlImagetxt = "ReadTestCaseExecutionMedia?filename=" + fileList[i].fileName + "&filetype=" + fileList[i].fileType + "&filedesc=" + fileList[i].fileDesc;
+            var urlImagetxt = "ReadTestCaseExecutionMedia?filename=" + fileList[i].fileName + "&filetype=" + fileList[i].fileType + "&filedesc=" + fileList[i].fileDesc + "&auto=" + auto;
+            ;
             var fileDesctxt = fileList[i].fileDesc;
             var filetypetxt = fileList[i].fileType.toLowerCase();
             if (i === 0) {
                 var linkBoxtxt = $("<div name='mediaMiniature'>").addClass("col-xs-1").css("padding", "0px 7px 0px 7px")
                         .append(fileList[i].fileDesc).prepend("<br>").prepend($("<img>").attr("src", "images/f-" + filetypetxt + ".svg")
                         .css("height", "30px").click(function (f) {
-                    showTextArea(fileList[0].fileDesc, "", "ReadTestCaseExecutionMedia?filename=" + fileList[0].fileName + "&filetype=" + fileList[0].fileType + "&filedesc=" + fileList[0].fileDesc);
+                    changeClickIfManual(isTheExecutionManual, container, idStep, fileList[index], f)
                     return false;
                 }));
             } else if (i === 1) {
                 var linkBoxtxt = $("<div name='mediaMiniature'>").addClass("col-xs-1").css("padding", "0px 7px 0px 7px")
                         .append(fileList[i].fileDesc).prepend("<br>").prepend($("<img>").attr("src", "images/f-" + filetypetxt + ".svg")
                         .css("height", "30px").click(function (f) {
-                    showTextArea(fileList[1].fileDesc, "", "ReadTestCaseExecutionMedia?filename=" + fileList[1].fileName + "&filetype=" + fileList[1].fileType + "&filedesc=" + fileList[1].fileDesc);
+                    changeClickIfManual(isTheExecutionManual, container, idStep, fileList[index], f)
                     return false;
                 }));
             } else if (i === 2) {
                 var linkBoxtxt = $("<div name='mediaMiniature'>").addClass("col-xs-1").css("padding", "0px 7px 0px 7px")
                         .append(fileList[i].fileDesc).prepend("<br>").prepend($("<img>").attr("src", "images/f-" + filetypetxt + ".svg")
                         .css("height", "30px").click(function (f) {
-                    showTextArea(fileList[2].fileDesc, "", "ReadTestCaseExecutionMedia?filename=" + fileList[2].fileName + "&filetype=" + fileList[2].fileType + "&filedesc=" + fileList[2].fileDesc);
+                    changeClickIfManual(isTheExecutionManual, container, idStep, fileList[index], f)
                     return false;
                 }));
             } else if (i === 3) {
                 var linkBoxtxt = $("<div name='mediaMiniature'>").addClass("col-xs-1").css("padding", "0px 7px 0px 7px")
                         .append(fileList[i].fileDesc).prepend("<br>").prepend($("<img>").attr("src", "images/f-" + filetypetxt + ".svg")
                         .css("height", "30px").click(function (f) {
-                    showTextArea(fileList[3].fileDesc, "", "ReadTestCaseExecutionMedia?filename=" + fileList[3].fileName + "&filetype=" + fileList[3].fileType + "&filedesc=" + fileList[3].fileDesc);
+                    changeClickIfManual(isTheExecutionManual, container, idStep, fileList[index], f)
                     return false;
                 }));
             }
             container.append(linkBoxtxt);
+        } else if ((fileList[i].fileType === "BIN") || (fileList[i].fileType === "PDF")) {
+
+            var linkBoxtxt = null;
+
+            if (fileList[i].fileType === "BIN") {
+                linkBoxtxt = $("<div name='mediaMiniature'>").addClass("col-xs-1").css("padding", "0px 7px 0px 7px").append(fileList[i].fileDesc).prepend("<br>").prepend($("<img>").attr("src", "images/f-binaire.png").css("height", "30px").click(function (f) {
+                    changeClickIfManual(isTheExecutionManual, container, idStep, fileList[index], f)
+                    return false;
+                }))
+            } else if (fileList[i].fileType === "PDF") {
+                linkBoxtxt = $("<div name='mediaMiniature'>").addClass("col-xs-1").css("padding", "0px 7px 0px 7px").append(fileList[i].fileDesc).prepend("<br>").prepend($("<img>").attr("src", "images/f-pdf.svg").css("height", "30px").click(function (f) {
+                    changeClickIfManual(isTheExecutionManual, container, idStep, fileList[index], f)
+                    return false;
+                }))
+            }
+
+            container.append(linkBoxtxt);
         }
+    }
+
+
+
+    if (isTheExecutionManual && fileList.length != 0) {
+        var buttonUpload = $($("<button>").addClass("btn btn-info btn-upload btn-inverse").attr("type", "button").text("UPLOAD"));
+        $(buttonUpload).css("float", "right")
+        buttonUpload.click(function (event) {
+            var idex = $("#idlabel").text()
+            if ($(container).parent().parent().parent().hasClass("action")) {
+                var indexAction = $(this).parents("a").data('index')
+                var currentActionOrControl = getScriptInformationOfStep()[idStep]["actionArr"][indexAction]
+                openModalFile(true, currentActionOrControl, "ADD", idex)
+            } else {
+                var indexAction = $(this).parents("a").parent().find(".action").data('index')
+                var indexControl = $(this).parents("a").data('index')
+                var currentActionOrControl = getScriptInformationOfStep()[idStep]["actionArr"][indexAction]["controlArr"][indexControl]
+                openModalFile(false, currentActionOrControl, "ADD", idex)
+            }
+            event.preventDefault()
+            event.stopPropagation()
+        })
+        $(container).parent().find("#contentField").append(buttonUpload)
+        $(container).parent().find("#contentField").find(".col-sm-10").removeClass("col-sm-10").addClass("col-sm-8")
+        $(container).parent().find("#contentField").find(".col-xs-10").removeClass("col-xs-10").addClass("col-xs-8")
     }
 }
 
@@ -2362,4 +2605,6 @@ function getScriptInformationOfStep() {
     }
     return stepArr;
 }
+
+
 

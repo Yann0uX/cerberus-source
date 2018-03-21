@@ -25,8 +25,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -324,7 +322,7 @@ public class CreateTestCase extends HttpServlet {
         tc.setBugID(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("bugId"), "", charset));
         tc.setComment(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("comment"), "", charset));
         tc.setFunction(ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("function"), "", charset));
-
+        tc.setTestCaseVersion(0);
         // Parameter that we cannot secure as we need the html --> We DECODE them
         tc.setHowTo(ParameterParserUtil.parseStringParamAndDecode(request.getParameter("howTo"), "", charset));
         tc.setBehaviorOrValueExpected(ParameterParserUtil.parseStringParamAndDecode(request.getParameter("behaviorOrValueExpected"), "", charset));

@@ -23,7 +23,6 @@ import com.sun.jna.Native;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.win32.W32APIOptions;
 import static com.sun.jna.win32.W32APIOptions.DEFAULT_OPTIONS;
-import org.cerberus.engine.execution.impl.RunTestCaseService;
 import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.GraphicsEnvironment;
@@ -464,7 +463,9 @@ public class WebDriverService implements IWebDriverService {
                     Callable<MessageEvent> task = new Callable<MessageEvent>() {
                         public MessageEvent call() {
                             MessageEvent message;
-                            webElement.click();
+                            Actions actions = new Actions(session.getDriver());
+                            actions.click(webElement);
+                            actions.build().perform();
                             message = new MessageEvent(MessageEventEnum.ACTION_SUCCESS_CLICK);
                             message.setDescription(message.getDescription().replace("%ELEMENT%", identifier.getIdentifier() + "=" + identifier.getLocator()));
                             return message;
@@ -476,13 +477,22 @@ public class WebDriverService implements IWebDriverService {
                         return result;
                     } catch (java.util.concurrent.TimeoutException ex) {
                         // handle the timeout
-                        LOG.warn("Exception clicking on element :" + ex);
+                        LOG.warn("Exception clicking on element :" + ex, ex);
                         message = new MessageEvent(MessageEventEnum.ACTION_FAILED_TIMEOUT);
                         message.setDescription(message.getDescription().replace("%TIMEOUT%", String.valueOf(session.getCerberus_selenium_wait_element())));
+                        return message;
                     } catch (InterruptedException e) {
                         // handle the interrupts
+                        LOG.warn("Exception clicking on element :" + e, e);
+                        message = new MessageEvent(MessageEventEnum.ACTION_FAILED_CLICK);
+                        message.setDescription(message.getDescription().replace("%ELEMENT%", identifier.getIdentifier() + "=" + identifier.getLocator()).replace("%MESS%", e.toString()));
+                        return message;
                     } catch (ExecutionException e) {
                         // handle other exceptions
+                        LOG.warn("Exception clicking on element :" + e, e);
+                        message = new MessageEvent(MessageEventEnum.ACTION_FAILED_CLICK_NO_SUCH_ELEMENT);
+                        message.setDescription(message.getDescription().replace("%ELEMENT%", identifier.getIdentifier() + "=" + identifier.getLocator()).replace("%MESS%", e.toString()));
+                        return message;
                     } finally {
                         future.cancel(true);
                     }

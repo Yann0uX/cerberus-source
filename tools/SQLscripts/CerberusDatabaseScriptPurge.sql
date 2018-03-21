@@ -54,7 +54,7 @@ SELECT @ID730 := IFNULL(MAX(ID), 0) from testcaseexecution where TO_DAYS(NOW()) 
 -- Test Execution Control History
 DELETE FROM testcaseexecutionfile
 -- SELECT count(*) FROM testcaseexecutionfile
-where ID < @ID60 ;
+where ExeID < @ID60 ;
 
 -- Test Execution Control History
 DELETE FROM testcasestepactioncontrolexecution
@@ -155,8 +155,13 @@ DELETE FROM testcaseexecutionqueue
 -- SELECT count(*) FROM testcaseexecutionqueue
 where TO_DAYS(NOW()) - TO_DAYS(DateCreated) >= 100 ;
 
--- Test Execution Queue History
+-- Test Execution Queue History for queue entries that never generated any execution
 DELETE FROM testcaseexecutionqueue
 -- SELECT count(*) FROM testcaseexecutionqueue
 where TO_DAYS(NOW()) - TO_DAYS(DateCreated) >= 10 and ExeId is null ;
+
+-- Test Execution Queue History for queue entries that are DONE
+DELETE FROM testcaseexecutionqueue
+-- SELECT count(*) FROM testcaseexecutionqueue
+where TO_DAYS(NOW()) - TO_DAYS(DateCreated) >= 10 and state = 'DONE' ;
 

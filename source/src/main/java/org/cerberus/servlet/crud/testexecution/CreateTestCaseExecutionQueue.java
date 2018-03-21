@@ -20,6 +20,8 @@
 package org.cerberus.servlet.crud.testexecution;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -41,8 +43,10 @@ import org.cerberus.exception.FactoryCreationException;
 import org.cerberus.util.ParameterParserUtil;
 import org.cerberus.util.StringUtil;
 import org.cerberus.util.answer.Answer;
+import org.cerberus.util.answer.AnswerItem;
 import org.cerberus.util.answer.AnswerUtil;
 import org.cerberus.util.servlet.ServletUtil;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.owasp.html.PolicyFactory;
@@ -71,8 +75,10 @@ public class CreateTestCaseExecutionQueue extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, CerberusException, JSONException {
         JSONObject jsonResponse = new JSONObject();
+        JSONObject executionQueue = new JSONObject();
         ApplicationContext appContext = WebApplicationContextUtils.getWebApplicationContext(this.getServletContext());
         Answer ans = new Answer();
+        AnswerItem ansItem = new AnswerItem();
         MessageEvent msg = new MessageEvent(MessageEventEnum.DATA_OPERATION_ERROR_UNEXPECTED);
         msg.setDescription(msg.getDescription().replace("%DESCRIPTION%", ""));
         ans.setResultMessage(msg);
@@ -149,6 +155,7 @@ public class CreateTestCaseExecutionQueue extends HttpServlet {
         // Prepare the final answer.
         MessageEvent msg1 = new MessageEvent(MessageEventEnum.GENERIC_OK);
         Answer finalAnswer = new Answer(msg1);
+        List<TestCaseExecutionQueue> insertedList = new ArrayList();
 
         for (String myId : myIds) {
 
@@ -200,17 +207,23 @@ public class CreateTestCaseExecutionQueue extends HttpServlet {
                             // If id is defined, we get the execution queue from database.
                             executionQueueData = executionQueueService.convert(executionQueueService.readByKey(id));
                             executionQueueData.setState(TestCaseExecutionQueue.State.QUEUED);
+                            executionQueueData.setComment("");
                             executionQueueData.setDebugFlag("N");
                             executionQueueData.setPriority(TestCaseExecutionQueue.PRIORITY_DEFAULT);
+                            executionQueueData.setUsrCreated(request.getRemoteUser());
                         }
-                        ans = executionQueueService.create(executionQueueData);
+                        ansItem = executionQueueService.create(executionQueueData);
 
-                        finalAnswer = AnswerUtil.agregateAnswer(finalAnswer, (Answer) ans);
+                        finalAnswer = AnswerUtil.agregateAnswer(finalAnswer, (Answer) ansItem);
+                        if (ansItem.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {
+                            TestCaseExecutionQueue addedExecution = (TestCaseExecutionQueue) ansItem.getItem();
+                            insertedList.add(addedExecution);
+                        }
 
                         if (myIds.length <= 1) {
-                            if (ans.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {
+                            if (ansItem.isCodeEquals(MessageEventEnum.DATA_OPERATION_OK.getCode())) {
                                 /**
-                                 * Update was successfull. Adding Log entry.
+                                 * Update was successful. Adding Log entry.
                                  */
                                 ILogEventService logEventService = appContext.getBean(LogEventService.class);
                                 logEventService.createForPrivateCalls("/CreateTestCaseExecutionQueue", "CREATE", "Created ExecutionQueue : ['" + id + "']", request);
@@ -236,6 +249,19 @@ public class CreateTestCaseExecutionQueue extends HttpServlet {
          */
         jsonResponse.put("messageType", finalAnswer.getResultMessage().getMessage().getCodeString());
         jsonResponse.put("message", finalAnswer.getResultMessage().getDescription());
+        if (insertedList.isEmpty()) {
+            jsonResponse.put("addedEntries", 0);
+        } else {
+            JSONArray executionList = new JSONArray();
+
+            for (TestCaseExecutionQueue testCaseExecutionQueue : insertedList) {
+                JSONObject myExecution = new JSONObject();
+                myExecution.append("id", testCaseExecutionQueue.getId());
+                executionList.put(myExecution);
+            }
+            jsonResponse.put("testCaseExecutionQueueList", executionList);
+            jsonResponse.put("addedEntries", insertedList.size());
+        }
 
         response.getWriter().print(jsonResponse);
         response.getWriter().flush();

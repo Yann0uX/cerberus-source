@@ -38,12 +38,20 @@
     <body>
         <%@ include file="include/global/header.html"%>
         <div class="container-fluid center" id="page-layout">
+        <div id="DialogMessagesArea">
+        	<div class="alert" id="DialogMessagesAlert"  style="display:none;">
+             	<strong><span class="alert-description" id="DialogAlertDescription"></span></strong>
+                <button type="button" class="close" data-hide="alert"  aria-hidden="true">
+                	<span class="glyphicon glyphicon-remove alert-right alert-close pull-right"></span>
+                </button>
+            </div>
+        </div>
             <%@ include file="include/global/messagesArea.html"%>
             <%@ include file="include/pages/runtests/TestCaseNotValid.html"%>
             <%@ include file="include/transversalobject/Robot.html"%>
             <h1 class="page-title-line">Run Test</h1>
             <div class="row">
-                <div class="col-lg-9">
+                <div class="col-lg-12">
 
                     <div class="panel panel-default" id="selectionPanel">
                         <div class="panel-heading">
@@ -64,13 +72,6 @@
                                             <button type="button" class="btn btn-primary" id="loadCampaignBtn">Load</button>
                                         </div>
                                     </div>
-<!--                                    <div class="form-group col-sm-2">
-                                        <div class="input-group">
-                                            <div class="input-group-btn">
-                                                <button type="button" class="btn btn-primary" id="loadCampaignBtn">Load</button>
-                                            </div>
-                                        </div>
-                                    </div>-->
                                 </form>
                             </div>
                         </div>
@@ -142,10 +143,6 @@
                                                 <select class="multiselectelement form-control" multiple="multiple" id="campaignFilter"></select>
                                             </div>
                                             <div class="form-group col-xs-2">
-                                                <label id="lbl_testBattery" for="testBatteryFilter">Test Battery</label>                                     
-                                                <select class="multiselectelement form-control" multiple="multiple" id="testBatteryFilter"></select>
-                                            </div>
-                                            <div class="form-group col-xs-2">
                                                 <i><label id="lbl_label" for="labelFilter">Label</label></i>
                                                 <select class="multiselectelement form-control" multiple="multiple" id="labelidFilter"></select>
                                             </div>
@@ -155,7 +152,6 @@
                                             </div>
                                             <div class="form-group col-xs-2">
                                                 <button type="button" class="btn btn-primary" id="loadFiltersBtn">Search</button>
-                                                <button type="button" class="btn btn-default" id="resetbutton">Reset Filters</button>
                                             </div>
                                         </div>
                                     </form>
@@ -228,44 +224,15 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="row" id="potencialBlock">
-                            <li class="list-group-item list-group-item-info col-lg-offset-3 col-lg-6" id="potential" style="margin-top: 25px;">
-                                <span class="badge" id="potentialNumber">0</span>
-                                <span>Potential additions to the queue</span>
-                            </li>
-                                <div class="col-lg-offset-3 col-lg-6 text-center" style="margin-top: 25px;">
-                                    <button type="button" class="btn btn-primary" id="addQueue"> Add selection to queue </button>
-                                    <button type="button" class="btn btn-primary" id="addQueueAndRun"> Add selection to queue and Run</button>
-                                </div>
+                            <div class="row" id="runCampaignUpBlock">
+                                    <button type="button" class="btn btn-primary btn-lg btn-block" id="runCampaignUp">Run Campaign</button>
+                            </div>
+                            <div class="row" id="runTestCaseUpBlock">
+                                    <button type="button" class="btn btn-primary btn-lg btn-block" id="runTestCaseUp">Run Test Case</button>
                             </div>
                         </div>
                     </div>
 
-                </div>
-
-                <div class="col-lg-3" id="exeList">
-                    <li class="list-group-item list-group-item-danger" style="display: none;" id="notValid">
-                        <span class="badge" id="notValidNumber" style="cursor: pointer;"></span>
-                        <span>Some executions couldn't be added to the queue</span>
-                    </li>
-                    <li class="list-group-item list-group-item-success" id="valid">
-                        <span class="badge" id="validNumber">0</span>
-                        <span>Executions in queue</span>
-                    </li>
-                    <div class="panel panel-default">
-                        <div class="panel-heading card" data-toggle="collapse" data-target="#queuePanel">
-                            <span class="toggle glyphicon glyphicon-chevron-right pull-right"></span>
-                            <button class="btn btn-default btn-xs pull-right" id="resetQueue">Reset Queue</button>
-                            <span>Queue</span>
-                        </div>
-
-                        <div class="panel-body collapse in" id="queuePanel">
-                            <ul class="list-group" id="queue" style="max-height: 500px; min-height: 100px; overflow: hidden; overflow-y: scroll;border: 1px solid #CCC; border-radius: 4px;"></ul>
-                        </div>
-                    </div>
-                    <div style="padding-bottom: 25px;">
-                        <button type="button" class="btn btn-primary btn-lg btn-block" id="runList">Run</button>
-                    </div>
                 </div>
 
             </div>
@@ -283,14 +250,14 @@
                                     <form class="form-horizontal" id="robotSettingsForm">
                                         <div class="form-group">
                                             <label for="robot" class="col-sm-3 control-label bold">Select Robot Config</label>
-                                            <div class="col-xs-6">
-                                                <select class="form-control input-sm" id="robot" name="robot"></select>
-                                            </div>
-                                            <div class="col-xs-1" style="margin-top: 0px;">
+                                            <div class="col-sm-6">
+                                                <select class="form-control input-sm" id="robot" name="robot" multiple></select>
                                                 <button type="button" id="robotEdit" class="glyphicon glyphicon-edit btn" title="Edit Robot"></button>
-                                            </div>
-                                            <div class="col-xs-1" style="margin-top: 0px;">
                                                 <button type="button" id="robotCreate" class="glyphicon glyphicon-plus-sign btn" title="Create a new Robot"></button>
+                                            </div>
+                                            <div class="col-sm-1" style="margin-top: 0px;">
+                                            </div>
+                                            <div class="col-sm-1" style="margin-top: 0px;">
                                             </div>
                                         </div>
                                         <div class="form-group">
@@ -308,27 +275,9 @@
                                         <div class="form-group">
                                             <label for="browser" class="col-sm-3 control-label bold">Browser</label>
                                             <div class="col-sm-9">
-                                                <select class="form-control input-sm" id="browser" name="browser" multiple></select>
+                                                <select class="form-control input-sm" id="browser" name="browser"></select>
                                             </div>
                                         </div>
-<!--                                        <div class="form-group">
-                                            <label for="version" class="col-sm-3 control-label">Version (Optional)</label>
-                                            <div class="col-sm-9">
-                                                <input type="text" class="form-control input-sm" id="version" name="BrowserVersion"/>
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="platform" class="col-sm-3 control-label">Platform (Optional)</label>
-                                            <div class="col-sm-9">
-                                                <select class="form-control input-sm" id="platform" name="platform"></select>
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="screenSize" class="col-sm-3 control-label bold">Screen Size</label>
-                                            <div class="col-sm-9">
-                                                <input type="text" class="form-control" name="screenSize" id="screenSize" aria-describedby="basic-addon1" maxlength="250"/>
-                                            </div>
-                                        </div>-->
                                     </form>
                                     <div class="col-sm-offset-3 col-sm-9">
                                         <button class="btn btn-default btn-sm pull-right" id="saveRobotPreferences">Record my Robot Preferences</button>
@@ -439,9 +388,8 @@
                 </div>
             </div>
             <div style="padding-bottom: 15px;padding-top: 15px;">
-                <button type="button" class="btn btn-primary btn-lg btn-block" id="run">Run</button>
-                <button type="button" class="btn btn-primary btn-lg btn-block" id="addQueueAndRunBis"> Add selection to queue and Run</button>
                 <button type="button" class="btn btn-primary btn-lg btn-block" id="runCampaign">Run Campaign</button>
+                <button type="button" class="btn btn-primary btn-lg btn-block" id="runTestCase">Run Test Case</button>
             </div>
 
             <footer class="footer">

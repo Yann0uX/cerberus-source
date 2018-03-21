@@ -19,6 +19,7 @@
  */
 package org.cerberus.servlet.crud.testexecution;
 
+import com.google.common.io.Files;
 import com.mortennobel.imagescaling.DimensionConstrain;
 import com.mortennobel.imagescaling.ResampleOp;
 import org.apache.commons.io.IOUtils;
@@ -49,6 +50,7 @@ import org.cerberus.crud.factory.IFactoryTestCaseExecutionFile;
 import org.cerberus.crud.service.IParameterService;
 import org.cerberus.crud.service.ITestCaseExecutionFileService;
 import org.cerberus.util.servlet.ServletUtil;
+import org.jfree.util.Log;
 
 /**
  *
@@ -78,7 +80,7 @@ public class ReadTestCaseExecutionMedia extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, CerberusException {
         String charset = request.getCharacterEncoding();
-
+        boolean auto = ParameterParserUtil.parseBooleanParam(request.getParameter("auto"), true);
         String type = ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("type"), "", charset);
         String test = ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("test"), "", charset);
         String testcase = ParameterParserUtil.parseStringParamAndDecodeAndSanitize(request.getParameter("testcase"), "", charset);
@@ -154,7 +156,13 @@ public class ReadTestCaseExecutionMedia extends HttpServlet {
         }
 
         if (tceFile != null) {
-            String pathString = parameterService.getParameterStringByKey("cerberus_mediastorage_path", "", "");
+            String pathString = "";
+            if (auto) {
+                pathString = parameterService.getParameterStringByKey("cerberus_exeautomedia_path", "", "");
+            } else {
+                pathString = parameterService.getParameterStringByKey("cerberus_exemanualmedia_path", "", "");
+            }
+
             switch (tceFile.getFileType()) {
                 case "JPG":
                 case "JPEG":
@@ -196,6 +204,8 @@ public class ReadTestCaseExecutionMedia extends HttpServlet {
                 case "TXT":
                     returnFile(request, response, tceFile, pathString);
                     break;
+                case "PDF":
+                    returnPDF(request, response, tceFile, pathString);
                 default:
                     returnNotSupported(request, response, tceFile, pathString);
             }
@@ -224,13 +234,14 @@ public class ReadTestCaseExecutionMedia extends HttpServlet {
                 image = ImageIO.read(picture);
 
                 // We test if file is too thin or too long. That prevent 500 error in case files are not compatible with resize. In that case, we crop the file.
-                if ((image.getHeight() * width / image.getWidth() < 3) || (image.getWidth() * height / image.getHeight() < 3)) {
+                if ((image.getHeight() * width / image.getWidth() < 10) || (image.getWidth() * height / image.getHeight() < 15)) {
+                    LOG.debug("Image is too big of thin. Target Height : " + image.getHeight() * width / image.getWidth() + " Target Width : " + image.getWidth() * height / image.getHeight());
                     b = ImageIO.read(picture);
                     int minwidth = width;
                     if (width > image.getWidth()) {
                         minwidth = image.getWidth();
                     }
-                    int minheight = width;
+                    int minheight = height;
                     if (height > image.getHeight()) {
                         minheight = image.getHeight();
                     }
@@ -238,6 +249,7 @@ public class ReadTestCaseExecutionMedia extends HttpServlet {
 
                     b = crop;
                     response.setHeader("Format-Status", "ERROR");
+                    response.setHeader("Format-Status-Message", "Image Crop from : " + image.getWidth() + "X" + image.getHeight() + " to : " + minwidth + "X" + minheight);
                 } else {
                     ResampleOp rop = new ResampleOp(DimensionConstrain.createMaxDimension(width, height, true));
                     rop.setNumberOfThreads(4);
@@ -257,10 +269,25 @@ public class ReadTestCaseExecutionMedia extends HttpServlet {
         ImageIO.write(b, "png", response.getOutputStream());
     }
 
+    private void returnPDF(HttpServletRequest request, HttpServletResponse response, TestCaseExecutionFile tc, String filePath) {
+
+        File pdfFile = null;
+        filePath = StringUtil.addSuffixIfNotAlready(filePath, File.separator);
+        pdfFile = new File(filePath + tc.getFileName());
+        response.setContentType("application/pdf");
+        response.setContentLength((int) pdfFile.length());
+        try {
+            Files.copy(pdfFile, response.getOutputStream());
+        } catch (IOException e) {
+            Log.warn(e);
+        }
+
+    }
+
     private void returnFile(HttpServletRequest request, HttpServletResponse response, TestCaseExecutionFile tc, String filePath) {
 
         String everything = "";
-        filePath = StringUtil.addSuffixIfNotAlready(filePath, "/");
+        filePath = StringUtil.addSuffixIfNotAlready(filePath, File.separator);
 
         LOG.debug("Accessing File : " + filePath + tc.getFileName());
         try (FileInputStream inputStream = new FileInputStream(filePath + tc.getFileName())) {

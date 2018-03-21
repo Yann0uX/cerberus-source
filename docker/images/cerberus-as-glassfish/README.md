@@ -11,6 +11,8 @@ Hereafter list of available tags:
 Tag     | Description                        | Source
 --------|------------------------------------|-------------------------------
 latest  | Use the latest Cerberus version    | [latest/Dockerfile](https://github.com/cerberustesting/cerberus-docker/blob/master/images/cerberus-as-glassfish/latest/Dockerfile)
+3.2   | Use the 3.2 Cerberus version     | [3.2/Dockerfile](https://github.com/cerberustesting/cerberus-docker/blob/master/images/cerberus-as-glassfish/3.2/Dockerfile)
+3.1.0   | Use the 3.1.0 Cerberus version     | [3.1.0/Dockerfile](https://github.com/cerberustesting/cerberus-docker/blob/master/images/cerberus-as-glassfish/3.1.0/Dockerfile)
 1.1.12   | Use the 1.1.12 Cerberus version     | [1.1.12/Dockerfile](https://github.com/cerberustesting/cerberus-docker/blob/master/images/cerberus-as-glassfish/1.1.12/Dockerfile)
 1.1.10   | Use the 1.1.10   Cerberus version   | [1.1.10/Dockerfile](https://github.com/cerberustesting/cerberus-docker/blob/master/images/cerberus-as-glassfish/1.1.10/Dockerfile)
 1.1.9   | Use the 1.1.9   Cerberus version   | [1.1.9/Dockerfile](https://github.com/cerberustesting/cerberus-docker/blob/master/images/cerberus-as-glassfish/1.1.9/Dockerfile)
@@ -35,13 +37,13 @@ Note, from the [1.1.9](https://github.com/cerberustesting/cerberus-docker/blob/m
 
 This image can simply be run by using the following command:
 
-    docker run -d -P cerberus/cerberus-as-glassfish:latest
+    docker run -d -P cerberustesting/cerberus-as-glassfish:latest
 
 Note the use of the `-d` and `-P` arguments to let image be run as deamon and open ports outside container which is the common use.
 
 To run image by connecting to a MySQL Cerberus database located at `<database_host>:<database_port>` you could run (assume we are using default values for name, username, and password):
 
-    docker run -d -P -e DATABASE_HOST='<database_host>' -e DATABASE_PORT='<database_port>' cerberus/cerberus-as-glassfish:latest
+    docker run -d -P -e DATABASE_HOST='<database_host>' -e DATABASE_PORT='<database_port>' cerberustesting/cerberus-as-glassfish:latest
 
 ### Configure the running Cerberus instance
 
@@ -71,6 +73,8 @@ Environment variable                    | Definition                            
 `DATABASE_USER`                         | Cerberus database user                    | `cerberus`
 `DATABASE_PASSWORD`                     | Cerberus database password                | `toto`
 `GLASSFISH_HTTP_THREADPOOL_MAX_SIZE`    | Glassfish HTTP thread pool maximum size   | `500`
+`GLASSFISH_DOMAIN`                      | Glassfish domain name (cerberus by default | `500`
+`GLASSFISH_ADMIN_PASSWORD`              | Glassfish admin password                  | `500`
 
 ## Exposed ports
 
@@ -83,7 +87,7 @@ Exposed port            | Definition
 
 Assume you want to reach to the Cerberus instance, then you would run:
 
-    docker run -d -p 18080:8080 -p 14848:4848 cerberus/cerberus-as-glassfish:latest
+    docker run -d -p 18080:8080 -p 14848:4848 cerberustesting/cerberus-as-glassfish:latest
 
 And you could access to the Cerberus instance by reaching the following URL:
 
@@ -126,6 +130,12 @@ To apply this runtime configuration to Cerberus instance, then:
 5. Save changes
 
 From the [1.1.6](https://github.com/cerberustesting/cerberus-docker/blob/master/images/cerberus-as-glassfish/1.1.6/Dockerfile) version, `cerberus_picture_path` and `cerberus_picture_url` parameters have been respectively renamed `cerberus_mediastorage_path` and `cerberus_mediastorage_path`.
+
+### Glassfish data
+You can share this volume to persist Glassfish seetings : 
+*  <local_path>/screenshots:/usr/local/glassfish4/glassfish/domains/<domain_name>
+*  <local_path>/lib:/usr/local/glassfish4/glassfish/lib
+
 
 ## License
 

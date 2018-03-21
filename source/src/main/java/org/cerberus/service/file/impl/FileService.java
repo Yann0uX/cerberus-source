@@ -20,6 +20,8 @@
 package org.cerberus.service.file.impl;
 
 import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
@@ -31,6 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.cerberus.engine.entity.MessageEvent;
 import org.cerberus.enums.MessageEventEnum;
 import org.cerberus.service.file.IFileService;
+import org.cerberus.util.StringUtil;
 import org.cerberus.util.answer.AnswerList;
 import org.springframework.stereotype.Service;
 
@@ -53,13 +56,20 @@ public class FileService implements IFileService {
          */
         result.setResultMessage(new MessageEvent(MessageEventEnum.PROPERTY_FAILED_GETFROMDATALIB_CSV_GENERIC)
                 .resolveDescription("URL", urlToCSVFile));
+        
+        BufferedReader br = null;
 
         try {
             /**
              * Get CSV File and parse it line by line
              */
-            URL urlToCall = new URL(urlToCSVFile);
-            BufferedReader br = new BufferedReader(new InputStreamReader(urlToCall.openStream()));
+            if (StringUtil.isURL(urlToCSVFile)) {
+                URL urlToCall = new URL(urlToCSVFile);
+                br = new BufferedReader(new InputStreamReader(urlToCall.openStream()));
+            } else {
+                br = new BufferedReader(new FileReader(urlToCSVFile));
+                br.readLine();
+            }
 
             if ("".equals(separator)) {
                 separator = ",";
@@ -104,6 +114,14 @@ public class FileService implements IFileService {
             LOG.warn("Error Getting CSV File " + exception);
             result.setResultMessage(new MessageEvent(MessageEventEnum.PROPERTY_FAILED_GETFROMDATALIB_CSV_FILENOTFOUND)
                     .resolveDescription("URL", urlToCSVFile).resolveDescription("EX", exception.toString()));
+        }finally {
+        	if(br != null) {
+        		try {
+    				br.close();
+    			} catch (IOException e) {
+    				LOG.warn(e.toString());
+    			}
+        	}
         }
         return result;
     }

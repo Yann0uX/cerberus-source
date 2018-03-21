@@ -53,7 +53,12 @@ public class Campaign implements Serializable {
 
     private List<CampaignParameter> campaignParameterList;
 
-    private List<CampaignContent> campaignContentList;
+    /**
+     * Invariant PROPERTY TYPE String.
+     */
+    public static final String NOTIFYSTARTTAGEXECUTION_Y = "Y";
+    public static final String NOTIFYSTARTTAGEXECUTION_N = "N";
+    public static final String NOTIFYSTARTTAGEXECUTION_CIKO = "CIKO";
 
     public Campaign() {
     }
@@ -126,15 +131,6 @@ public class Campaign implements Serializable {
         this.campaignParameterList = campaignParameterList;
     }
 
-    @XmlTransient
-    @JsonIgnore
-    public List<CampaignContent> getCampaignContentList() {
-        return campaignContentList;
-    }
-
-    public void setCampaignContentList(List<CampaignContent> campaignContentList) {
-        this.campaignContentList = campaignContentList;
-    }
 
     @Override
     public int hashCode() {

@@ -197,6 +197,9 @@ public class ReadTestCaseExecutionQueue extends HttpServlet {
             //if the service returns an OK message then we can get the item and convert it to JSONformat
             TestCaseExecutionQueue lib = (TestCaseExecutionQueue) answer.getItem();
             JSONObject response = convertTestCaseExecutionInQueueToJSONObject(lib);
+            int nb = 0;
+            nb = queueService.getNbEntryToGo(lib.getId(), lib.getPriority());
+            response.put("nbEntryInQueueToGo", nb);
             object.put("contentTable", response);
         }
 
@@ -223,12 +226,17 @@ public class ReadTestCaseExecutionQueue extends HttpServlet {
         String columnToSort[] = sColumns.split(",");
         String columnName = columnToSort[columnToSortParameter];
         String sort = ParameterParserUtil.parseStringParam(request.getParameter("sSortDir_0"), "desc");
+        List<String> individualLike = new ArrayList(Arrays.asList(request.getParameter("sLike").split(",")));
 
         Map<String, List<String>> individualSearch = new HashMap<>();
         for (int a = 0; a < columnToSort.length; a++) {
             if (null != request.getParameter("sSearch_" + a) && !request.getParameter("sSearch_" + a).isEmpty()) {
                 List<String> search = new ArrayList(Arrays.asList(request.getParameter("sSearch_" + a).split(",")));
-                individualSearch.put(columnToSort[a], search);
+                if(individualLike.contains(columnToSort[a])) {
+                	individualSearch.put(columnToSort[a]+":like", search);
+                }else {
+                	individualSearch.put(columnToSort[a], search);
+                }
             }
         }
 
@@ -337,7 +345,6 @@ public class ReadTestCaseExecutionQueue extends HttpServlet {
         AnswerItem answer = new AnswerItem();
         JSONObject object = new JSONObject();
         AnswerList values = new AnswerList();
-        Map<String, List<String>> individualSearch = new HashMap();
 
         executionService = appContext.getBean(ITestCaseExecutionQueueService.class);
 
@@ -371,11 +378,17 @@ public class ReadTestCaseExecutionQueue extends HttpServlet {
                 String sColumns = ParameterParserUtil.parseStringParam(request.getParameter("sColumns"), "id,test,testcase,country,environment,browser,tag");
                 String columnToSort[] = sColumns.split(",");
 
-                individualSearch = new HashMap<>();
+                List<String> individualLike = new ArrayList(Arrays.asList(ParameterParserUtil.parseStringParam(request.getParameter("sLike"), "").split(",")));
+
+                Map<String, List<String>> individualSearch = new HashMap<>();
                 for (int a = 0; a < columnToSort.length; a++) {
                     if (null != request.getParameter("sSearch_" + a) && !request.getParameter("sSearch_" + a).isEmpty()) {
-                        List<String> search = new ArrayList(Arrays.asList(request.getParameter("sSearch_" + a).split(",")));
-                        individualSearch.put(columnToSort[a], search);
+                    	List<String> search = new ArrayList(Arrays.asList(request.getParameter("sSearch_" + a).split(",")));
+                    	if(individualLike.contains(columnToSort[a])) {
+                        	individualSearch.put(columnToSort[a]+":like", search);
+                        }else {
+                        	individualSearch.put(columnToSort[a], search);
+                        } 
                     }
                 }
                 values = executionService.readDistinctValuesByCriteria(columnName, sort, searchParameter, individualSearch, column);

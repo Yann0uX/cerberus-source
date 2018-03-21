@@ -38,6 +38,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.cerberus.crud.entity.Invariant;
+import org.cerberus.crud.entity.Label;
 import org.cerberus.crud.entity.Tag;
 import org.cerberus.crud.entity.TestCaseExecution;
 import org.cerberus.crud.entity.TestCaseLabel;
@@ -47,6 +48,7 @@ import org.cerberus.crud.service.ITestCaseExecutionService;
 import org.cerberus.crud.service.ITestCaseLabelService;
 import org.cerberus.crud.service.impl.InvariantService;
 import org.cerberus.dto.SummaryStatisticsDTO;
+import org.cerberus.dto.SummaryStatisticsBugTrackerDTO;
 import org.cerberus.engine.entity.MessageEvent;
 import org.cerberus.enums.MessageEventEnum;
 import org.cerberus.exception.CerberusException;
@@ -61,6 +63,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 import org.springframework.web.util.JavaScriptUtils;
 import org.cerberus.crud.service.ITestCaseExecutionQueueService;
+import org.cerberus.util.StringUtil;
 
 /**
  *
@@ -114,14 +117,25 @@ public class ReadTestCaseExecutionByTag extends HttpServlet {
             //Get Data from database
             List<TestCaseExecution> testCaseExecutions = testCaseExecutionService.readLastExecutionAndExecutionInQueueByTag(Tag);
 
+            // Table that contain the list of testcases and corresponding executions
             if (outputReport.isEmpty() || outputReport.contains("table")) {
                 jsonResponse.put("table", generateTestCaseExecutionTable(appContext, testCaseExecutions, statusFilter, countryFilter));
             }
+            // Executions per Function (or Test).
             if (outputReport.isEmpty() || outputReport.contains("functionChart")) {
                 jsonResponse.put("functionChart", generateFunctionChart(testCaseExecutions, Tag, statusFilter, countryFilter));
             }
+            // Global executions stats per Status
             if (outputReport.isEmpty() || outputReport.contains("statsChart")) {
                 jsonResponse.put("statsChart", generateStats(request, testCaseExecutions, statusFilter, countryFilter, true));
+            }
+            // BugTracker Recap
+            if (outputReport.isEmpty() || outputReport.contains("bugTrackerStat")) {
+                jsonResponse.put("bugTrackerStat", generateBugStats(request, testCaseExecutions, statusFilter, countryFilter));
+            }
+            // Labels Stats
+            if (outputReport.isEmpty() || outputReport.contains("labelStat")) {
+                jsonResponse.put("labelStat", generateLabelStats(appContext, request, testCaseExecutions, statusFilter, countryFilter));
             }
             if (!outputReport.isEmpty()) {
                 //currently used to optimize the homePage
@@ -139,7 +153,7 @@ public class ReadTestCaseExecutionByTag extends HttpServlet {
             jsonResponse.put("tagDuration", (mytag.getDateEndQueue().getTime() - mytag.getDateCreated().getTime()) / 60000);
 
             answer.setItem(jsonResponse);
-            answer.setResultMessage(new MessageEvent(MessageEventEnum.DATA_OPERATION_OK));
+            answer.setResultMessage(answer.getResultMessage().resolveDescription("ITEM", "Tag Statistics").resolveDescription("OPERATION", "Read"));
 
             jsonResponse.put("messageType", answer.getResultMessage().getMessage().getCodeString());
             jsonResponse.put("message", answer.getResultMessage().getDescription());
@@ -168,10 +182,11 @@ public class ReadTestCaseExecutionByTag extends HttpServlet {
         result.put("Start", testCaseExecution.getStart());
         result.put("End", testCaseExecution.getEnd());
         result.put("Country", JavaScriptUtils.javaScriptEscape(testCaseExecution.getCountry()));
-        result.put("Browser", JavaScriptUtils.javaScriptEscape(testCaseExecution.getBrowser()));
+        result.put("RobotDecli", JavaScriptUtils.javaScriptEscape(testCaseExecution.getRobotDecli()));
         result.put("ControlStatus", JavaScriptUtils.javaScriptEscape(testCaseExecution.getControlStatus()));
         result.put("ControlMessage", JavaScriptUtils.javaScriptEscape(testCaseExecution.getControlMessage()));
         result.put("Status", JavaScriptUtils.javaScriptEscape(testCaseExecution.getStatus()));
+        result.put("NbExecutions", String.valueOf(testCaseExecution.getNbExecutions()));
         if (testCaseExecution.getQueueState() != null) {
             result.put("QueueState", JavaScriptUtils.javaScriptEscape(testCaseExecution.getQueueState()));
         }
@@ -258,20 +273,28 @@ public class ReadTestCaseExecutionByTag extends HttpServlet {
         for (TestCaseExecution testCaseExecution : testCaseExecutions) {
             try {
                 String controlStatus = testCaseExecution.getControlStatus();
+
+                // We check is Country and status is inside the fitered values.
                 if (statusFilter.get(controlStatus).equals("on") && countryFilter.get(testCaseExecution.getCountry()).equals("on")) {
 
-                    JSONObject execution = testCaseExecutionToJSONObject(testCaseExecution);
-                    String execKey = testCaseExecution.getEnvironment() + " " + testCaseExecution.getCountry() + " " + testCaseExecution.getBrowser();
+                    JSONObject executionJSON = testCaseExecutionToJSONObject(testCaseExecution);
+                    String execKey = testCaseExecution.getEnvironment() + " " + testCaseExecution.getCountry() + " " + testCaseExecution.getRobotDecli();
                     String testCaseKey = testCaseExecution.getTest() + "_" + testCaseExecution.getTestCase();
                     JSONObject execTab = new JSONObject();
                     JSONObject ttcObject = new JSONObject();
 
                     if (ttc.containsKey(testCaseKey)) {
+                        // We add an execution entry into the testcase line.
                         ttcObject = ttc.get(testCaseKey);
                         execTab = ttcObject.getJSONObject("execTab");
-                        execTab.put(execKey, execution);
+                        execTab.put(execKey, executionJSON);
                         ttcObject.put("execTab", execTab);
+                        Integer toto = (Integer) ttcObject.get("NbExecutionsTotal");
+                        toto += testCaseExecution.getNbExecutions() - 1;
+                        ttcObject.put("NbExecutionsTotal", toto);
+
                     } else {
+                        // We add a new testcase entry (with The current execution).
                         ttcObject.put("test", testCaseExecution.getTest());
                         ttcObject.put("testCase", testCaseExecution.getTestCase());
                         ttcObject.put("shortDesc", testCaseExecution.getDescription());
@@ -296,7 +319,10 @@ public class ReadTestCaseExecutionByTag extends HttpServlet {
                         // Flag that report if test case still exist.
                         ttcObject.put("testExist", testExist);
 
-                        execTab.put(execKey, execution);
+                        // Adding nb of execution on retry.
+                        ttcObject.put("NbExecutionsTotal", (testCaseExecution.getNbExecutions() - 1));
+
+                        execTab.put(execKey, executionJSON);
                         ttcObject.put("execTab", execTab);
 
                         /**
@@ -305,14 +331,15 @@ public class ReadTestCaseExecutionByTag extends HttpServlet {
                          */
                         LinkedHashMap<String, JSONArray> testCaseWithLabel = new LinkedHashMap();
                         for (TestCaseLabel label : (List<TestCaseLabel>) testCaseLabelList.getDataList()) {
-                            String key = label.getTest() + "_" + label.getTestcase();
+                            if (Label.TYPE_STICKER.equals(label.getLabel().getType())) { // We only display STICKER Type Label in Reporting By Tag Page..
+                                String key = label.getTest() + "_" + label.getTestcase();
 
-                            if (testCaseWithLabel.containsKey(key)) {
                                 JSONObject jo = new JSONObject().put("name", label.getLabel().getLabel()).put("color", label.getLabel().getColor()).put("description", label.getLabel().getDescription());
-                                testCaseWithLabel.get(key).put(jo);
-                            } else {
-                                JSONObject jo = new JSONObject().put("name", label.getLabel().getLabel()).put("color", label.getLabel().getColor()).put("description", label.getLabel().getDescription());
-                                testCaseWithLabel.put(key, new JSONArray().put(jo));
+                                if (testCaseWithLabel.containsKey(key)) {
+                                    testCaseWithLabel.get(key).put(jo);
+                                } else {
+                                    testCaseWithLabel.put(key, new JSONArray().put(jo));
+                                }
                             }
                         }
                         ttcObject.put("labels", testCaseWithLabel.get(testCaseExecution.getTest() + "_" + testCaseExecution.getTestCase()));
@@ -322,8 +349,8 @@ public class ReadTestCaseExecutionByTag extends HttpServlet {
                     JSONObject column = new JSONObject();
                     column.put("country", testCaseExecution.getCountry());
                     column.put("environment", testCaseExecution.getEnvironment());
-                    column.put("browser", testCaseExecution.getBrowser());
-                    columnMap.put(testCaseExecution.getBrowser() + "_" + testCaseExecution.getCountry() + "_" + testCaseExecution.getEnvironment(), column);
+                    column.put("robotDecli", testCaseExecution.getRobotDecli());
+                    columnMap.put(testCaseExecution.getRobotDecli() + "_" + testCaseExecution.getCountry() + "_" + testCaseExecution.getEnvironment(), column);
 
                 }
                 Map<String, JSONObject> treeMap = new TreeMap<String, JSONObject>(columnMap);
@@ -411,7 +438,7 @@ public class ReadTestCaseExecutionByTag extends HttpServlet {
         JSONObject jsonResult = new JSONObject();
         boolean env = request.getParameter("env") != null || !splitStats;
         boolean country = request.getParameter("country") != null || !splitStats;
-        boolean browser = request.getParameter("browser") != null || !splitStats;
+        boolean robotDecli = request.getParameter("robotDecli") != null || !splitStats;
         boolean app = request.getParameter("app") != null || !splitStats;
 
         HashMap<String, SummaryStatisticsDTO> statMap = new HashMap<String, SummaryStatisticsDTO>();
@@ -425,26 +452,97 @@ public class ReadTestCaseExecutionByTag extends HttpServlet {
                 key.append("_");
                 key.append((country) ? testCaseExecution.getCountry() : "");
                 key.append("_");
-                key.append((browser) ? testCaseExecution.getBrowser() : "");
+                key.append((robotDecli) ? testCaseExecution.getRobotDecli() : "");
                 key.append("_");
                 key.append((app) ? testCaseExecution.getApplication() : "");
 
                 SummaryStatisticsDTO stat = new SummaryStatisticsDTO();
                 stat.setEnvironment(testCaseExecution.getEnvironment());
                 stat.setCountry(testCaseExecution.getCountry());
-                stat.setBrowser(testCaseExecution.getBrowser());
+                stat.setRobotDecli(testCaseExecution.getRobotDecli());
                 stat.setApplication(testCaseExecution.getApplication());
 
                 statMap.put(key.toString(), stat);
             }
         }
 
-        jsonResult.put("contentTable", getStatByEnvCountryBrowser(testCaseExecutions, statMap, env, country, browser, app, statusFilter, countryFilter, splitStats));
+        jsonResult.put("contentTable", getStatByEnvCountryRobotDecli(testCaseExecutions, statMap, env, country, robotDecli, app, statusFilter, countryFilter, splitStats));
 
         return jsonResult;
     }
 
-    private JSONObject getStatByEnvCountryBrowser(List<TestCaseExecution> testCaseExecutions, HashMap<String, SummaryStatisticsDTO> statMap, boolean env, boolean country, boolean browser, boolean app, JSONObject statusFilter, JSONObject countryFilter, boolean splitStats) throws JSONException {
+    private JSONObject generateBugStats(HttpServletRequest request, List<TestCaseExecution> testCaseExecutions, JSONObject statusFilter, JSONObject countryFilter) throws JSONException {
+
+        JSONObject jsonResult = new JSONObject();
+        SummaryStatisticsBugTrackerDTO stat = new SummaryStatisticsBugTrackerDTO();
+        String bugsToReport = "KO,FA";
+        stat.setNbExe(1);
+        int totalBugReported = 0;
+        int totalBugToReport = 0;
+        int totalBugToReportReported = 0;
+        int totalBugToClean = 0;
+        HashMap<String, SummaryStatisticsBugTrackerDTO> statMap = new HashMap<String, SummaryStatisticsBugTrackerDTO>();
+        for (TestCaseExecution testCaseExecution : testCaseExecutions) {
+            String controlStatus = testCaseExecution.getControlStatus();
+            if (statusFilter.get(controlStatus).equals("on") && countryFilter.get(testCaseExecution.getCountry()).equals("on")) {
+
+                String key = "";
+
+                if (bugsToReport.contains(testCaseExecution.getControlStatus())) {
+                    totalBugToReport++;
+                }
+                if ((testCaseExecution.getTestCaseObj() != null) && (!StringUtil.isNullOrEmpty(testCaseExecution.getTestCaseObj().getBugID()))) {
+                    key = testCaseExecution.getTestCaseObj().getBugID();
+                    stat = statMap.get(key);
+                    totalBugReported++;
+                    if (stat == null) {
+                        stat = new SummaryStatisticsBugTrackerDTO();
+                        stat.setNbExe(1);
+                        stat.setBugId(testCaseExecution.getTestCaseObj().getBugID());
+                        stat.setBugIdURL(testCaseExecution.getApplicationObj().getBugTrackerUrl().replace("%BUGID%", testCaseExecution.getTestCaseObj().getBugID()));
+                        stat.setExeIdLastStatus(testCaseExecution.getControlStatus());
+                        stat.setExeIdFirst(testCaseExecution.getId());
+                        stat.setExeIdLast(testCaseExecution.getId());
+                        stat.setTestFirst(testCaseExecution.getTest());
+                        stat.setTestLast(testCaseExecution.getTest());
+                        stat.setTestCaseFirst(testCaseExecution.getTestCase());
+                        stat.setTestCaseLast(testCaseExecution.getTestCase());
+                    } else {
+                        stat.setNbExe(stat.getNbExe() + 1);
+                        stat.setExeIdLastStatus(testCaseExecution.getControlStatus());
+                        stat.setExeIdLast(testCaseExecution.getId());
+                        stat.setTestLast(testCaseExecution.getTest());
+                        stat.setTestCaseLast(testCaseExecution.getTestCase());
+                    }
+                    if (!(bugsToReport.contains(testCaseExecution.getControlStatus()))) {
+                        totalBugToClean++;
+                        stat.setToClean(true);
+                    } else {
+                        totalBugToReportReported++;
+                    }
+                    statMap.put(key, stat);
+                }
+
+            }
+        }
+
+        Gson gson = new Gson();
+        JSONArray dataArray = new JSONArray();
+        for (String key : statMap.keySet()) {
+            SummaryStatisticsBugTrackerDTO sumStats = statMap.get(key);
+            dataArray.put(new JSONObject(gson.toJson(sumStats)));
+        }
+
+        jsonResult.put("BugTrackerStat", dataArray);
+        jsonResult.put("totalBugToReport", totalBugToReport);
+        jsonResult.put("totalBugToReportReported", totalBugToReportReported);
+        jsonResult.put("totalBugReported", totalBugReported);
+        jsonResult.put("totalBugToClean", totalBugToClean);
+
+        return jsonResult;
+    }
+
+    private JSONObject getStatByEnvCountryRobotDecli(List<TestCaseExecution> testCaseExecutions, HashMap<String, SummaryStatisticsDTO> statMap, boolean env, boolean country, boolean robotDecli, boolean app, JSONObject statusFilter, JSONObject countryFilter, boolean splitStats) throws JSONException {
         SummaryStatisticsDTO total = new SummaryStatisticsDTO();
         total.setEnvironment("Total");
 
@@ -458,7 +556,7 @@ public class ReadTestCaseExecutionByTag extends HttpServlet {
                 key.append("_");
                 key.append((country) ? testCaseExecution.getCountry() : "");
                 key.append("_");
-                key.append((browser) ? testCaseExecution.getBrowser() : "");
+                key.append((robotDecli) ? testCaseExecution.getRobotDecli() : "");
                 key.append("_");
                 key.append((app) ? testCaseExecution.getApplication() : "");
 
@@ -519,6 +617,68 @@ public class ReadTestCaseExecutionByTag extends HttpServlet {
         Gson gson = new Gson();
         JSONObject result = new JSONObject(gson.toJson(tag));
         return result;
+    }
+
+    private JSONObject generateLabelStats(ApplicationContext appContext, HttpServletRequest request, List<TestCaseExecution> testCaseExecutions, JSONObject statusFilter, JSONObject countryFilter) throws JSONException {
+
+        JSONObject jsonResult = new JSONObject();
+        boolean stickers = request.getParameter("stickers") != null;
+        boolean requirement = request.getParameter("requirement") != null;
+
+        if (stickers || requirement) {
+
+            testCaseLabelService = appContext.getBean(ITestCaseLabelService.class);
+            AnswerList testCaseLabelList = testCaseLabelService.readByTestTestCase(null, null);
+            SummaryStatisticsDTO total = new SummaryStatisticsDTO();
+            total.setEnvironment("Total");
+
+            /**
+             * Iterate on the label retrieved and generate HashMap based on the
+             * key Test_TestCase
+             */
+            LinkedHashMap<String, JSONArray> testCaseWithLabel = new LinkedHashMap();
+            for (TestCaseLabel label : (List<TestCaseLabel>) testCaseLabelList.getDataList()) {
+                if ((Label.TYPE_STICKER.equals(label.getLabel().getType()) && stickers)
+                        || (Label.TYPE_REQUIREMENT.equals(label.getLabel().getType()) && requirement)) {
+                    String key = label.getTest() + "_" + label.getTestcase();
+                    JSONObject jo = new JSONObject().put("name", label.getLabel().getLabel()).put("color", label.getLabel().getColor()).put("description", label.getLabel().getDescription());
+                    if (testCaseWithLabel.containsKey(key)) {
+                        testCaseWithLabel.get(key).put(jo);
+                    } else {
+                        testCaseWithLabel.put(key, new JSONArray().put(jo));
+                    }
+                }
+            }
+            /**
+             * For All execution, get all label and generate statistics
+             */
+            LinkedHashMap<String, SummaryStatisticsDTO> labelPerTestcaseExecution = new LinkedHashMap();
+            for (TestCaseExecution testCaseExecution : testCaseExecutions) {
+                String controlStatus = testCaseExecution.getControlStatus();
+                if (statusFilter.get(controlStatus).equals("on") && countryFilter.get(testCaseExecution.getCountry()).equals("on")) {
+
+                    //Get label for current test_testcase
+                    JSONArray labelsForTestCase = testCaseWithLabel.get(testCaseExecution.getTest() + "_" + testCaseExecution.getTestCase());
+                    if (labelsForTestCase != null) {
+                        for (int index = 0; index < labelsForTestCase.length(); index++) {
+                            JSONObject j = labelsForTestCase.getJSONObject(index);
+                            if (labelPerTestcaseExecution.containsKey(j.get("name"))) {
+                                labelPerTestcaseExecution.get(j.get("name").toString()).updateStatisticByStatus(controlStatus);
+                            } else {
+                                SummaryStatisticsDTO stat = new SummaryStatisticsDTO();
+                                stat.setLabel(j);
+                                stat.updateStatisticByStatus(controlStatus);
+                                labelPerTestcaseExecution.put(j.get("name").toString(), stat);
+                            }
+                            total.updateStatisticByStatus(controlStatus);
+                        }
+                    }
+                }
+            }
+
+            jsonResult.put("labelStats", extractSummaryData(labelPerTestcaseExecution, total, true));
+        }
+        return jsonResult;
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">

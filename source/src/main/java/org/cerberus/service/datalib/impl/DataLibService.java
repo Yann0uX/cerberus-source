@@ -19,15 +19,19 @@
  */
 package org.cerberus.service.datalib.impl;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.cerberus.crud.entity.AppService;
 import org.cerberus.crud.entity.CountryEnvironmentDatabase;
+import org.cerberus.crud.entity.Parameter;
 import org.cerberus.crud.entity.TestCaseCountryProperties;
 import org.cerberus.crud.entity.TestCaseExecution;
 import org.cerberus.crud.entity.TestCaseExecutionData;
@@ -58,6 +62,7 @@ import org.cerberus.util.XmlUtil;
 import org.cerberus.util.XmlUtilException;
 import org.cerberus.util.answer.AnswerItem;
 import org.cerberus.util.answer.AnswerList;
+import org.jfree.util.Log;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -117,9 +122,14 @@ public class DataLibService implements IDataLibService {
         MessageEvent msg = new MessageEvent(MessageEventEnum.PROPERTY_SUCCESS);
 
         // Length contains the nb of rows that the result must fetch. If defined at 0 we force at 1.
-        int nbRowsRequested = testCaseCountryProperty.getLength();
-        if (nbRowsRequested < 1) {
-            nbRowsRequested = 1;
+        Integer nbRowsRequested = 0;
+        try {
+            nbRowsRequested = Integer.parseInt(testCaseExecutionData.getLength());
+            if (nbRowsRequested < 1) {
+                nbRowsRequested = 1;
+            }
+        } catch (NumberFormatException e) {
+            LOG.error(e.toString());
         }
 
         /**
@@ -133,27 +143,27 @@ public class DataLibService implements IDataLibService {
             columnList = resultColumns.getItem();
             // Now that we have the list of column with subdata and value, we can try to decode it.
             if (columnList != null) {
-            for (Map.Entry<String, String> entry : columnList.entrySet()) { // Loop on all Column in order to decode all values.
-                String eKey = entry.getKey(); // SubData
-                String eValue = entry.getValue(); // Parsing Answer
-                try {
-                    answerDecode = variableService.decodeStringCompletly(eValue, tCExecution, null, false);
-                    columnList.put(eKey, (String) answerDecode.getItem());
+                for (Map.Entry<String, String> entry : columnList.entrySet()) { // Loop on all Column in order to decode all values.
+                    String eKey = entry.getKey(); // SubData
+                    String eValue = entry.getValue(); // Parsing Answer
+                    try {
+                        answerDecode = variableService.decodeStringCompletly(eValue, tCExecution, null, false);
+                        columnList.put(eKey, (String) answerDecode.getItem());
 
-                    if (!(answerDecode.isCodeStringEquals("OK"))) {
-                        // If anything wrong with the decode --> we stop here with decode message in the action result.
-                        result = new AnswerList();
-                        result.setDataList(null);
-                        msg = new MessageEvent(MessageEventEnum.PROPERTY_FAILED_GETFROMDATALIB_GLOBAL_SUBDATAISSUE);
-                        msg.setDescription(msg.getDescription().replace("%SUBDATAMESSAGE%", answerDecode.getMessageDescription().replace("%FIELD%","Column value '" + eValue +"'")));
-                        result.setResultMessage(msg);
-                        LOG.debug("Datalib interupted due to decode 'column value' Error.");
-                        return result;
+                        if (!(answerDecode.isCodeStringEquals("OK"))) {
+                            // If anything wrong with the decode --> we stop here with decode message in the action result.
+                            result = new AnswerList();
+                            result.setDataList(null);
+                            msg = new MessageEvent(MessageEventEnum.PROPERTY_FAILED_GETFROMDATALIB_GLOBAL_SUBDATAISSUE);
+                            msg.setDescription(msg.getDescription().replace("%SUBDATAMESSAGE%", answerDecode.getMessageDescription().replace("%FIELD%", "Column value '" + eValue + "'")));
+                            result.setResultMessage(msg);
+                            LOG.debug("Datalib interupted due to decode 'column value' Error.");
+                            return result;
+                        }
+                    } catch (CerberusEventException cex) {
+                        LOG.warn(cex);
                     }
-                } catch (CerberusEventException cex) {
-                    LOG.warn(cex);
                 }
-            }
             }
 
         } else if (resultColumns.getResultMessage().getCode() == MessageEventEnum.PROPERTY_FAILED_GETFROMDATALIB_SUBDATA.getCode()) {
@@ -211,18 +221,8 @@ public class DataLibService implements IDataLibService {
         //Manage error message.
         if (result.getResultMessage().getCode() == MessageEventEnum.PROPERTY_SUCCESS_GETFROMDATALIB_NATURE.getCode()) {
             msg = new MessageEvent(MessageEventEnum.PROPERTY_SUCCESS_GETFROMDATALIB_GLOBAL);
-            String resultString = "";
-            try {
-                JSONArray jsonResult = null;
-                jsonResult = convertToJSONObject((List<HashMap<String, String>>) result.getDataList());
-                resultString = jsonResult.toString();
-            } catch (JSONException ex) {
-                resultString = result.getDataList().toString();
-                LOG.warn(ex);
-            }
             msg.setDescription(msg.getDescription().replace("%DATAMESSAGE%", resultData.getMessageDescription())
-                    .replace("%FILTERNATUREMESSAGE%", result.getMessageDescription())
-                    .replace("%RESULT%", resultString));
+                    .replace("%FILTERNATUREMESSAGE%", result.getMessageDescription()));
             result.setResultMessage(msg);
 
         } else if (result.getResultMessage().getCode() == MessageEventEnum.PROPERTY_FAILED_GETFROMDATALIB_GENERIC_NATURENOMORERECORD.getCode()) {
@@ -607,6 +607,9 @@ public class DataLibService implements IDataLibService {
         String system = tCExecution.getApplicationObj().getSystem();
         String country = tCExecution.getCountry();
         String environment = tCExecution.getEnvironment();
+        Pattern pattern;
+        Matcher matcher;
+        Parameter p;
 
         List<HashMap<String, String>> list;
 
@@ -615,12 +618,14 @@ public class DataLibService implements IDataLibService {
 
                 /**
                  * Before making the call we check if the Service Path is
-                 * already a propper URL. If it is not, we prefix with the
-                 * CsvUrl defined from corresponding database. This is used to
-                 * get the data from the correct environment.
+                 * already a proper URL. If it is not, we prefix with the CsvUrl
+                 * defined from corresponding database. This is used to get the
+                 * data from the correct environment.
                  */
                 String servicePathCsv = lib.getCsvUrl();
+
                 LOG.debug("Service Path (Csv) : " + lib.getCsvUrl());
+                // Trying making an URL with database context path.
                 if (!StringUtil.isURL(servicePathCsv)) {
                     // Url is not valid, we try to get the corresponding DatabaseURL CsvURL to prefix.
                     if (!(StringUtil.isNullOrEmpty(lib.getDatabaseCsv()))) {
@@ -665,11 +670,8 @@ public class DataLibService implements IDataLibService {
                                             .replace("%ENTRYID%", lib.getTestDataLibID().toString()));
                                     result.setResultMessage(msg);
                                     return result;
-
                                 }
-
                             }
-
                         } catch (CerberusException ex) {
                             msg = new MessageEvent(MessageEventEnum.PROPERTY_FAILED_GETFROMDATALIB_CSV_URLKOANDDATABASECSVURLNOTEXIST);
                             msg.setDescription(msg.getDescription()
@@ -681,16 +683,15 @@ public class DataLibService implements IDataLibService {
                             result.setResultMessage(msg);
                             return result;
                         }
-
-                    } else { // URL is not valid and DatabaseCsv is not defined.
-                        msg = new MessageEvent(MessageEventEnum.PROPERTY_FAILED_GETFROMDATALIB_CSV_URLKOANDNODATABASE);
-                        msg.setDescription(msg.getDescription()
-                                .replace("%SERVICEURL%", lib.getCsvUrl())
-                                .replace("%ENTRY%", lib.getName())
-                                .replace("%ENTRYID%", lib.getTestDataLibID().toString()));
-                        result.setResultMessage(msg);
-                        return result;
                     }
+                }
+
+                // Trying make a valid path with csv parameter path.
+                if (!StringUtil.isURL(servicePathCsv)) {
+                    // Url is still not valid. We try to add the path from csv parameter.
+                    String csv_path = parameterService.getParameterStringByKey("cerberus_testdatalibcsv_path", "", "");
+                    csv_path = StringUtil.addSuffixIfNotAlready(csv_path, File.separator);
+                    servicePathCsv = csv_path + servicePathCsv;
                 }
 
                 // CSV Call is made here.
@@ -1076,6 +1077,7 @@ public class DataLibService implements IDataLibService {
         return result;
     }
 
+    @Override
     public JSONArray convertToJSONObject(List<HashMap<String, String>> object) throws JSONException {
         JSONArray jsonArray = new JSONArray();
         for (HashMap<String, String> row : object) {

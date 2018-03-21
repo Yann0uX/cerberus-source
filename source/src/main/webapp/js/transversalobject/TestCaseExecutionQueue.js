@@ -73,6 +73,9 @@ function initModalTestcaseExecutionQueue() {
     $("#test").bind("change", function (event) {
         feedTestCase($(this).val(), "#testCase");
     });
+    $("#robot").bind("change", function (event) {
+        robot_change();
+    });
 }
 
 /***
@@ -201,7 +204,10 @@ function confirmExecutionQueueModalHandler(mode, queueAction, saveAction) {
                 oTable.fnDraw(true);
                 $('#editExecutionQueueModal').data("Saved", true);
                 $('#editExecutionQueueModal').modal('hide');
-                showMessage(data);
+                if (data.addedEntries === 1) {
+                    data.message = data.message + "<a href='TestCaseExecution.jsp?executionQueueId=" + data.testCaseExecutionQueueList[0].id + "'><button class='btn btn-primary' id='goToExecution'>Get to Execution</button></a>";
+                }
+                showMessageMainPage(getAlertType(data.messageType), data.message, false, 60000);
             } else {
                 showMessage(data, $('#editExecutionQueueModal'));
             }
@@ -254,7 +260,7 @@ function feedExecutionQueueModal(queueid, modalId, mode) {
                 var hasPermissions = data.hasPermissions;
 
                 if (mode === "EDIT") {
-                    // Cannot Cancel and execution that is already cancelled.
+                    // Cannot Cancel an execution that is already cancelled.
                     if (exeQ.state === "CANCELLED") {
                         $('#cancelExecutionQueueButton').attr('class', '');
                         $('#cancelExecutionQueueButton').prop('hidden', 'hidden');
@@ -268,6 +274,11 @@ function feedExecutionQueueModal(queueid, modalId, mode) {
                         $('#submitExecutionQueueButton').attr('class', '');
                         $('#submitExecutionQueueButton').prop('hidden', 'hidden');
                         hasPermissions = false;
+                    }
+                    // Cannot resubmit an execution that is already in queue.
+                    if ((exeQ.state === "QUEUED")) {
+                        $('#submitExecutionQueueButton').attr('class', '');
+                        $('#submitExecutionQueueButton').prop('hidden', 'hidden');
                     }
                 }
 
@@ -322,21 +333,26 @@ function feedExecutionQueueModalData(exeQ, modalId, mode, hasPermissionsUpdate) 
     var isEditable = (((hasPermissionsUpdate) && (mode === "EDIT") && ((exeQ.state === "WAITING") || (exeQ.state === "QUEUED") || (exeQ.state === "ERROR") || (exeQ.state === "CANCELLED")))
             || (mode === "DUPLICATE"));
 
-    $("#test").empty();
-    $("#testCase").empty();
+    console.info(isEditable);
+    console.info(mode);
+    console.info(hasPermissionsUpdate);
+    console.info(exeQ.state);
+
+    formEdit.find("#test").empty();
+    formEdit.find("#testCase").empty();
 
 
     if (isEditable) {
         var jqxhr = $.getJSON("ReadTest", "");
         $.when(jqxhr).then(function (data) {
-            var testList = $("#test");
+            var testList = formEdit.find("#test");
 
             for (var index = 0; index < data.contentTable.length; index++) {
                 testList.append($('<option></option>').text(data.contentTable[index].test).val(data.contentTable[index].test));
             }
-            $("#test").prop("value", exeQ.test);
+            formEdit.find("#test").prop("value", exeQ.test);
 
-            feedTestCase(exeQ.test, "#testCase", exeQ.testCase);
+            feedTestCase(exeQ.test, "#" + modalId + " #testCase", exeQ.testCase);
 
         });
 
@@ -352,7 +368,7 @@ function feedExecutionQueueModalData(exeQ, modalId, mode, hasPermissionsUpdate) 
     }
 
 
-    $("#robot").empty();
+    formEdit.find("#robot").empty();
     var jqxhr = $.getJSON("ReadRobot", "");
     $.when(jqxhr).then(function (data) {
         var robotList = $("#robot");
@@ -361,42 +377,44 @@ function feedExecutionQueueModalData(exeQ, modalId, mode, hasPermissionsUpdate) 
         for (var index = 0; index < data.contentTable.length; index++) {
             robotList.append($('<option></option>').text(data.contentTable[index].robot).val(data.contentTable[index].robot));
         }
-        $("#robot").prop("value", exeQ.robot);
-
+        formEdit.find("#robot").prop("value", exeQ.robot);
+        if (isEditable) {
+            robot_change();
+        }
     });
 
-    $("#debugFlag").empty();
+    formEdit.find("#debugFlag").empty();
     displayInvariantList("debugFlag", "QUEUEDEBUGFLAG", false, exeQ.debugFlag);
-    $("#country").empty();
+    formEdit.find("#country").empty();
     displayInvariantList("country", "COUNTRY", false, exeQ.country);
-    $("#environment").empty();
+    formEdit.find("#environment").empty();
     displayInvariantList("environment", "ENVIRONMENT", false, exeQ.environment);
-    $("#browser").empty();
+    formEdit.find("#browser").empty();
     displayInvariantList("browser", "BROWSER", false, exeQ.browser, "");
-    $("#platform").empty();
+    formEdit.find("#platform").empty();
     displayInvariantList("platform", "PLATFORM", false, exeQ.platform, "");
 
-    $("#verbose").empty();
+    formEdit.find("#verbose").empty();
     displayInvariantList("verbose", "VERBOSE", false, exeQ.verbose);
-    $("#screenshot").empty();
+    formEdit.find("#screenshot").empty();
     displayInvariantList("screenshot", "SCREENSHOT", false, exeQ.screenshot);
-    $("#pageSource").empty();
+    formEdit.find("#pageSource").empty();
     displayInvariantList("pageSource", "PAGESOURCE", false, exeQ.pageSource);
-    $("#seleniumLog").empty();
+    formEdit.find("#seleniumLog").empty();
     displayInvariantList("seleniumLog", "SELENIUMLOG", false, exeQ.seleniumLog);
-    $("#retries").empty();
+    formEdit.find("#retries").empty();
     displayInvariantList("retries", "RETRIES", false, exeQ.retries);
 
-    $("#manualExecution").empty();
+    formEdit.find("#manualExecution").empty();
     displayInvariantList("manualExecution", "MANUALEXECUTION", false, exeQ.manualExecution);
 
 
-    $("#manualURL").empty();
+    formEdit.find("#manualURL").empty();
     displayInvariantList("manualURL", "MANUALURL", false, exeQ.manualURL);
     formEdit.find("#manualHost").prop("value", exeQ.manualHost);
     formEdit.find("#manualContextRoot").prop("value", exeQ.manualContextRoot);
     formEdit.find("#manualLoginRelativeURL").prop("value", exeQ.manualLoginRelativeURL);
-    $("#manualEnvData").empty();
+    formEdit.find("#manualEnvData").empty();
     displayInvariantList("manualEnvData", "ENVIRONMENT", true, exeQ.manualEnvData, "");
 
     formEdit.find("#originalId").prop("value", exeQ.id);
@@ -408,7 +426,7 @@ function feedExecutionQueueModalData(exeQ, modalId, mode, hasPermissionsUpdate) 
         formEdit.find("#usrcreated").prop("value", exeQ.UsrCreated);
         formEdit.find("#datecreated").prop("value", exeQ.DateCreated);
         formEdit.find("#usrmodif").prop("value", exeQ.UsrModif);
-        formEdit.find("#datemodif").prop("value", exeQ.DateModif);
+        formEdit.find("#datemodif").prop("value", getDate(exeQ.DateModif));
         formEdit.find("#priority").prop("value", exeQ.priority);
         formEdit.find("#debugFlag").prop("value", exeQ.debugFlag);
     } else { // DUPLICATE or ADD
@@ -512,6 +530,25 @@ function feedExecutionQueueModalData(exeQ, modalId, mode, hasPermissionsUpdate) 
         formEdit.find("#timeout").prop("readonly", "readonly");
         formEdit.find("#retries").prop("disabled", "disabled");
         formEdit.find("#manualExecution").prop("disabled", "disabled");
+    }
+}
+
+function robot_change() {
+    var formEdit = $('#editExecutionQueueModal');
+    if (!isEmpty(formEdit.find("#robot").val())) {
+        formEdit.find("#robotIP").prop("readonly", "readonly");
+        formEdit.find("#robotPort").prop("readonly", "readonly");
+        formEdit.find("#browser").prop("disabled", "disabled");
+        formEdit.find("#browserVersion").prop("readonly", "readonly");
+        formEdit.find("#platform").prop("disabled", "disabled");
+        formEdit.find("#screenSize").prop("readonly", "readonly");
+    } else {
+        formEdit.find("#robotIP").prop("readonly", false);
+        formEdit.find("#robotPort").prop("readonly", false);
+        formEdit.find("#browser").removeAttr("disabled");
+        formEdit.find("#browserVersion").prop("readonly", false);
+        formEdit.find("#platform").removeAttr("disabled");
+        formEdit.find("#screenSize").prop("readonly", false);
     }
 }
 

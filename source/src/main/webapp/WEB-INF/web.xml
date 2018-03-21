@@ -89,6 +89,14 @@
         <servlet-class>org.cerberus.servlet.zzpublic.ResultCIV001</servlet-class>
     </servlet>
     <servlet>
+        <servlet-name>ResultCIV002</servlet-name>
+        <servlet-class>org.cerberus.servlet.zzpublic.ResultCIV002</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>ResultCIV003</servlet-name>
+        <servlet-class>org.cerberus.servlet.zzpublic.ResultCIV003</servlet-class>
+    </servlet>
+    <servlet>
         <servlet-name>DuplicateTestCase</servlet-name>
         <servlet-class>org.cerberus.servlet.crud.test.DuplicateTestCase</servlet-class>
     </servlet>
@@ -141,8 +149,8 @@
         <servlet-class>org.cerberus.servlet.crud.usermanagement.ChangeUserPassword</servlet-class>
     </servlet>
     <servlet>
-        <servlet-name>UpdateTestCaseDetail</servlet-name>
-        <servlet-class>org.cerberus.servlet.crud.test.UpdateTestCaseDetail</servlet-class>
+        <servlet-name>ChangeUserPasswordAdmin</servlet-name>
+        <servlet-class>org.cerberus.servlet.crud.usermanagement.ChangeUserPasswordAdmin</servlet-class>
     </servlet>
     <servlet>
         <servlet-name>TCEwwwDetail</servlet-name>
@@ -170,9 +178,7 @@
         <servlet-class>org.cerberus.servlet.zzpublic.NewRelease</servlet-class>
     </servlet>
     <servlet>
-        <description>This Servlet is used to monitor from Nagios the number of execution performed for Performance
-            monitoring.
-        </description>
+        <description>This Servlet is used to monitor from Nagios the number of execution performed for Performance monitoring.</description>
         <servlet-name>GetNumberOfExecutions</servlet-name>
         <servlet-class>org.cerberus.servlet.zzpublic.GetNumberOfExecutions</servlet-class>
     </servlet>
@@ -213,10 +219,6 @@
         <servlet-class>org.cerberus.servlet.crud.testexecution.ReadTag</servlet-class>
     </servlet>
     <servlet>
-        <servlet-name>GetCampaignExecutionsCommand</servlet-name>
-        <servlet-class>org.cerberus.servlet.zzpublic.GetCampaignExecutionsCommand</servlet-class>
-    </servlet>
-    <servlet>
         <servlet-name>UpdateCampaign</servlet-name>
         <servlet-class>org.cerberus.servlet.crud.testcampaign.UpdateCampaign</servlet-class>
     </servlet>
@@ -227,46 +229,6 @@
     <servlet>
         <servlet-name>DeleteCampaign</servlet-name>
         <servlet-class>org.cerberus.servlet.crud.testcampaign.DeleteCampaign</servlet-class>
-    </servlet>
-    <servlet>
-        <servlet-name>ReadTestBattery</servlet-name>
-        <servlet-class>org.cerberus.servlet.crud.testcampaign.ReadTestBattery</servlet-class>
-    </servlet>
-    <servlet>
-        <servlet-name>AddTestBattery</servlet-name>
-        <servlet-class>org.cerberus.servlet.crud.testcampaign.AddTestBattery</servlet-class>
-    </servlet>
-    <servlet>
-        <servlet-name>AddTestBatteryContent</servlet-name>
-        <servlet-class>org.cerberus.servlet.crud.testcampaign.AddTestBatteryContent</servlet-class>
-    </servlet>
-    <servlet>
-        <servlet-name>DeleteTestBattery</servlet-name>
-        <servlet-class>org.cerberus.servlet.crud.testcampaign.DeleteTestBattery</servlet-class>
-    </servlet>
-    <servlet>
-        <servlet-name>DeleteTestBattery2</servlet-name>
-        <servlet-class>org.cerberus.servlet.crud.testcampaign.DeleteTestBattery2</servlet-class>
-    </servlet>
-    <servlet>
-        <servlet-name>UpdateTestBattery2</servlet-name>
-        <servlet-class>org.cerberus.servlet.crud.testcampaign.UpdateTestBattery2</servlet-class>
-    </servlet>
-    <servlet>
-        <servlet-name>CreateTestBattery</servlet-name>
-        <servlet-class>org.cerberus.servlet.crud.testcampaign.CreateTestBattery</servlet-class>
-    </servlet>
-    <servlet>
-        <servlet-name>DeleteTestBatteryContent</servlet-name>
-        <servlet-class>org.cerberus.servlet.crud.testcampaign.DeleteTestBatteryContent</servlet-class>
-    </servlet>
-    <servlet>
-        <servlet-name>ReadTestBatteryContent</servlet-name>
-        <servlet-class>org.cerberus.servlet.crud.testcampaign.ReadTestBatteryContent</servlet-class>
-    </servlet>
-    <servlet>
-        <servlet-name>UpdateTestBattery</servlet-name>
-        <servlet-class>org.cerberus.servlet.crud.testcampaign.UpdateTestBattery</servlet-class>
     </servlet>
     <servlet>
         <servlet-name>GetInvariantsForTest</servlet-name>
@@ -573,10 +535,6 @@
         <servlet-class>org.cerberus.servlet.crud.test.GetPropertiesForTestCase</servlet-class>
     </servlet>
     <servlet>
-        <servlet-name>GetOnePropertyForTestCase</servlet-name>
-        <servlet-class>org.cerberus.servlet.crud.test.GetOnePropertyForTestCase</servlet-class>
-    </servlet>
-    <servlet>
         <servlet-name>ImportPropertyOfATestCaseToAnOtherTestCase</servlet-name>
         <servlet-class>org.cerberus.servlet.crud.test.ImportPropertyOfATestCaseToAnOtherTestCase</servlet-class>
     </servlet>
@@ -645,6 +603,14 @@
         <servlet-class>org.cerberus.servlet.manualtestcase.RunManualTest</servlet-class>
     </servlet>
     <servlet>
+        <servlet-name>CreateUpdateTestCaseExecutionFile</servlet-name>
+        <servlet-class>org.cerberus.servlet.manualtestcase.CreateUpdateTestCaseExecutionFile</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>DeleteTestCaseExecutionFile</servlet-name>
+        <servlet-class>org.cerberus.servlet.manualtestcase.DeleteTestCaseExecutionFile</servlet-class>
+    </servlet>
+    <servlet>
         <servlet-name>GetStepInLibrary</servlet-name>
         <servlet-class>org.cerberus.servlet.crud.test.GetStepInLibrary</servlet-class>
     </servlet>
@@ -657,6 +623,16 @@
         <description>Add a test case to the execution queue.</description>
         <servlet-name>AddToExecutionQueueV001</servlet-name>
         <servlet-class>org.cerberus.servlet.zzpublic.AddToExecutionQueueV001</servlet-class>
+    </servlet>
+    <servlet>
+        <description>Add a test case to the execution queue.</description>
+        <servlet-name>AddToExecutionQueueV002</servlet-name>
+        <servlet-class>org.cerberus.servlet.zzpublic.AddToExecutionQueueV002</servlet-class>
+    </servlet>
+    <servlet>
+        <description>Add a test case to the execution queue.</description>
+        <servlet-name>AddToExecutionQueueV003</servlet-name>
+        <servlet-class>org.cerberus.servlet.zzpublic.AddToExecutionQueueV003</servlet-class>
     </servlet>
     <servlet>
         <servlet-name>GetExecutionQueue</servlet-name>
@@ -809,10 +785,6 @@
         <servlet-class>org.cerberus.servlet.crud.testexecution.ReadTestCaseExecutionByTag</servlet-class>
     </servlet>
     <servlet>
-        <servlet-name>ResultCIV002</servlet-name>
-        <servlet-class>org.cerberus.servlet.zzpublic.ResultCIV002</servlet-class>
-    </servlet>
-    <servlet>
         <servlet-name>UpdateTestCaseExecution</servlet-name>
         <servlet-class>org.cerberus.servlet.crud.testexecution.UpdateTestCaseExecution</servlet-class>
     </servlet>
@@ -875,6 +847,14 @@
         <url-pattern>/ResultCIV001</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
+        <servlet-name>ResultCIV002</servlet-name>
+        <url-pattern>/ResultCIV002</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ResultCIV003</servlet-name>
+        <url-pattern>/ResultCIV003</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
         <servlet-name>TestcaseList</servlet-name>
         <url-pattern>/TestcaseList</url-pattern>
     </servlet-mapping>
@@ -913,6 +893,10 @@
     <servlet-mapping>
         <servlet-name>ChangeUserPassword</servlet-name>
         <url-pattern>/ChangeUserPassword</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ChangeUserPasswordAdmin</servlet-name>
+        <url-pattern>/ChangeUserPasswordAdmin</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
         <servlet-name>CreateTest</servlet-name>
@@ -991,10 +975,6 @@
         <url-pattern>/CalculatePropertyForTestCase</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
-        <servlet-name>UpdateTestCaseDetail</servlet-name>
-        <url-pattern>/UpdateTestCaseDetail</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
         <servlet-name>GetTestCaseList</servlet-name>
         <url-pattern>/GetTestCaseList</url-pattern>
     </servlet-mapping>
@@ -1035,10 +1015,6 @@
         <url-pattern>/ReadTag</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
-        <servlet-name>GetCampaignExecutionsCommand</servlet-name>
-        <url-pattern>/GetCampaignExecutionsCommand</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
         <servlet-name>UpdateCampaign</servlet-name>
         <url-pattern>/UpdateCampaign</url-pattern>
     </servlet-mapping>
@@ -1049,46 +1025,6 @@
     <servlet-mapping>
         <servlet-name>DeleteCampaign</servlet-name>
         <url-pattern>/DeleteCampaign</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>ReadTestBattery</servlet-name>
-        <url-pattern>/ReadTestBattery</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>AddTestBattery</servlet-name>
-        <url-pattern>/AddTestBattery</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>AddTestBatteryContent</servlet-name>
-        <url-pattern>/AddTestBatteryContent</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>DeleteTestBattery</servlet-name>
-        <url-pattern>/DeleteTestBattery</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>DeleteTestBattery2</servlet-name>
-        <url-pattern>/DeleteTestBattery2</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>UpdateTestBattery2</servlet-name>
-        <url-pattern>/UpdateTestBattery2</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>CreateTestBattery</servlet-name>
-        <url-pattern>/CreateTestBattery</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>DeleteTestBatteryContent</servlet-name>
-        <url-pattern>/DeleteTestBatteryContent</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>ReadTestBatteryContent</servlet-name>
-        <url-pattern>/ReadTestBatteryContent</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>UpdateTestBattery</servlet-name>
-        <url-pattern>/UpdateTestBattery</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
         <servlet-name>GetShortTests</servlet-name>
@@ -1459,6 +1395,14 @@
         <url-pattern>/AddToExecutionQueueV001</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
+        <servlet-name>AddToExecutionQueueV002</servlet-name>
+        <url-pattern>/AddToExecutionQueueV002</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>AddToExecutionQueueV003</servlet-name>
+        <url-pattern>/AddToExecutionQueueV003</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
         <servlet-name>GetExecutionQueue</servlet-name>
         <url-pattern>/GetExecutionQueue</url-pattern>
     </servlet-mapping>
@@ -1603,10 +1547,6 @@
         <url-pattern>/ReadTestCaseExecutionByTag</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
-        <servlet-name>ResultCIV002</servlet-name>
-        <url-pattern>/ResultCIV002</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
         <servlet-name>UpdateTestCaseExecution</servlet-name>
         <url-pattern>/UpdateTestCaseExecution</url-pattern>
     </servlet-mapping>
@@ -1617,6 +1557,14 @@
     <servlet-mapping>
         <servlet-name>CreateTestCaseExecutionQueue</servlet-name>
         <url-pattern>/CreateTestCaseExecutionQueue</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>CreateUpdateTestCaseExecutionFile</servlet-name>
+        <url-pattern>/CreateUpdateTestCaseExecutionFile</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>DeleteTestCaseExecutionFile</servlet-name>
+        <url-pattern>/DeleteTestCaseExecutionFile</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
         <servlet-name>DummyRESTCall</servlet-name>
@@ -1710,7 +1658,6 @@
             <url-pattern>/Test.jsp</url-pattern>
             <url-pattern>/TestCaseScript.jsp</url-pattern>
             <url-pattern>/TestCaseList.jsp</url-pattern>
-            <url-pattern>/TestBattery.jsp</url-pattern>
             <url-pattern>/TestCampaign.jsp</url-pattern>
         </web-resource-collection>
         <web-resource-collection>
@@ -1769,7 +1716,6 @@
             <url-pattern>/CreateTestCase</url-pattern>
             <url-pattern>/CreateTestCaseLabel</url-pattern>
             <url-pattern>/DeleteTestCaseLabel</url-pattern>
-            <url-pattern>/UpdateTestCaseDetail</url-pattern>
             <url-pattern>/ImportSeleniumIDE</url-pattern>
             <url-pattern>/ImportTestCaseStep</url-pattern>
             <url-pattern>/ImportPropertyOfATestCaseToAnOtherTestCase</url-pattern>
@@ -1785,7 +1731,6 @@
             <url-pattern>/UpdateTestCaseWithDependencies</url-pattern>
             <url-pattern>/UpdateTestCaseWithDependencies1</url-pattern>
             <url-pattern>/UpdateTestCaseProperties1</url-pattern>
-            <url-pattern>/ImportTestCaseFromJson</url-pattern>
             <url-pattern>/Thumbnailer</url-pattern>
             <url-pattern>/UpdateTestCaseField</url-pattern>
             <url-pattern>/ReadLabel</url-pattern>
@@ -1862,6 +1807,8 @@
             <url-pattern>/UpdateTestCaseExecutionQueue</url-pattern>
             <url-pattern>/ReadTestCaseExecutionQueue</url-pattern>
             <url-pattern>/CreateTestCaseExecutionQueue</url-pattern>
+            <url-pattern>/CreateUpdateTestCaseExecutionFile</url-pattern>
+            <url-pattern>/DeleteTestCaseExecutionFile</url-pattern>
         </web-resource-collection>
         <auth-constraint>
             <description>RunTest</description>
@@ -2028,6 +1975,7 @@
             <url-pattern>/DeleteInvariant</url-pattern>
             <url-pattern>/DeleteApplication</url-pattern>
             <url-pattern>/ReadCerberusDetailInformation</url-pattern>
+            <url-pattern>/ChangeUserPasswordAdmin</url-pattern>
         </web-resource-collection>
         <auth-constraint>
             <description>Administrator</description>
@@ -2061,6 +2009,7 @@
             <url-pattern>/ResultCI</url-pattern>
             <url-pattern>/ResultCIV001</url-pattern>
             <url-pattern>/ResultCIV002</url-pattern>
+            <url-pattern>/ResultCIV003</url-pattern>
             <url-pattern>/GetConnectionPoolName</url-pattern>
             <url-pattern>/SaveManualExecution</url-pattern>
             <url-pattern>/SaveManualExecutionPicture</url-pattern>
@@ -2068,27 +2017,16 @@
             <url-pattern>/GetInvariantList</url-pattern>
             <url-pattern>/GetCampaign</url-pattern>
             <url-pattern>/GetTagExecutions</url-pattern>
-            <url-pattern>/GetCampaignExecutionsCommand</url-pattern>
             <url-pattern>/ListCampaignParameter</url-pattern>
             <url-pattern>/UpdateCampaign</url-pattern>
             <url-pattern>/CreateCampaign</url-pattern>
             <url-pattern>/DeleteCampaign</url-pattern>
-            <url-pattern>/GetTestBattery</url-pattern>
-            <url-pattern>/AddTestBattery</url-pattern>
-            <url-pattern>/AddTestBatteryContent</url-pattern>
-            <url-pattern>/DeleteTestBattery</url-pattern>
-            <url-pattern>/DeleteTestBattery2</url-pattern>
-            <url-pattern>/UpdateTestBattery2</url-pattern>
-            <url-pattern>/CreateTestBattery</url-pattern>
-            <url-pattern>/DeleteTestBatteryContent</url-pattern>
-            <url-pattern>/UpdateTestBattery</url-pattern>
             <url-pattern>/importXML</url-pattern>
             <url-pattern>/importFile</url-pattern>
             <url-pattern>/NewRelease</url-pattern>
             <url-pattern>/TestcaseListGrid</url-pattern>
             <url-pattern>/ExecuteNextInQueue</url-pattern>
             <url-pattern>/VirtualProxy</url-pattern>
-            <url-pattern>/ReadTestBatteryContent</url-pattern>
             <url-pattern>/ReadDocumentation</url-pattern>
             <url-pattern>/ReadCerberusInformation</url-pattern>
             <url-pattern>/ReadTestCaseExecution</url-pattern>
@@ -2098,7 +2036,6 @@
             <url-pattern>/SaveManualExecutionPictureTest</url-pattern>
             <url-pattern>/ReadCampaign</url-pattern>
             <url-pattern>/ReadCampaignParameter</url-pattern>
-            <url-pattern>/ReadTestBattery</url-pattern>
             <url-pattern>/ReadInvariant</url-pattern>
             <url-pattern>/NewBuildRevisionV000</url-pattern>
             <url-pattern>/DisableEnvironmentV000</url-pattern>
@@ -2109,6 +2046,8 @@
             <url-pattern>/ChangeUserPassword</url-pattern>
             <url-pattern>/AddToExecutionQueue</url-pattern>
             <url-pattern>/AddToExecutionQueueV001</url-pattern>
+            <url-pattern>/AddToExecutionQueueV002</url-pattern>
+            <url-pattern>/AddToExecutionQueueV003</url-pattern>
             <url-pattern>/ReadApplicationObjectImage</url-pattern>
             <url-pattern>/GetTestCasesV000</url-pattern>
             <url-pattern>/DummyRESTCall</url-pattern>
@@ -2135,6 +2074,7 @@
             <url-pattern>/UpdateMyUserRobotPreference</url-pattern>
             <url-pattern>/ReadUserPublic</url-pattern>
             <url-pattern>/FindInvariantByID</url-pattern>
+            <url-pattern>/ImportTestCaseFromJson</url-pattern>
             <url-pattern>/GetReportData</url-pattern>
             <url-pattern>/ReadApplication</url-pattern>
             <url-pattern>/ReadApplicationObject</url-pattern>
@@ -2187,8 +2127,5 @@
     </listener>
     <listener>
         <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
-    </listener>
-    <listener>
-        <listener-class>org.cerberus.crud.entity.SessionCounterListener</listener-class>
     </listener>
 </web-app>
