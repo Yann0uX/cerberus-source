@@ -7679,7 +7679,7 @@ public class DatabaseVersioningService implements IDatabaseVersioningService {
         b.append("  (1, 40, '#idname',                   'default',              null               ), \n ");
         b.append("  (1, 45, '#value',                    'default',              null               ), \n ");
         b.append("  (1, 50, '#addInvariantButton',       'default',              null               ), \n ");
-        b.append("  (1, 55, '#sidebar',                  'changePageAfterClick', '#menuEnvironments'), \n ");
+        b.append("  (1, 55, '#sidebar',                  'changePageAfterClick', '#menuDeployType'), \n ");
 
         // type de deploiement, null, \n
         b.append("  (1, 57, '#formSystem',               'changePageAfterClick', '#SysFilter'        ) \n, ");
@@ -7687,7 +7687,7 @@ public class DatabaseVersioningService implements IDatabaseVersioningService {
         b.append("  (1, 65,'#deployType',                'default',              null                ) \n, ");
         b.append("  (1, 70,'#Description',               'default',              null                ) \n, ");
         b.append("  (1, 75,'#addEntryButton',            'default',              null                ) \n, ");
-        b.append("  (1, 80,'#sidebar',                   'changePageAfterClick', 'a#menuApplications') \n, ");
+        b.append("  (1, 80,'#sidebar',                   'changePageAfterClick', '#menuEnvironments') \n, ");
 
         // page environement, null, \n
         b.append("  (1, 85, '#createEnvButton',          'default',              null               ), \n ");
@@ -7696,7 +7696,7 @@ public class DatabaseVersioningService implements IDatabaseVersioningService {
         b.append("  (1, 100, '#environment',              'default',              null              ), \n ");
         b.append("  (1, 105, '#description',              'default',              null              ), \n ");
         b.append("  (1, 110, '#addEnvButton',             'default',              null              ), \n ");
-        b.append("  (1, 115, '#sidebar',                  'changePageAfterClick', '#menuDeployType' ), \n ");
+        b.append("  (1, 115, '#sidebar',                  'changePageAfterClick', 'a#menuApplications' ), \n ");
 
         // page application, null,
         b.append("  (1, 120,'#createApplicationButton',  'default',              null              ), \n");
@@ -7753,7 +7753,7 @@ public class DatabaseVersioningService implements IDatabaseVersioningService {
         b.append(" (6, 0,   '#sidebar',                  'changePageAfterClick',   '#menuRobot'     ), \n ");
         b.append(" (6, 5,   null,                      'general',             null                  ), \n ");
         b.append(" (6, 10,  '#createRobotButton',      'default',             null                  ), \n ");
-        b.append(" (6, 15,  '#robot',                   'default',             null                 ), \n ");
+        b.append(" (6, 15,  '#robotName',                   'default',             null                 ), \n ");
         b.append(" (6, 20,  '#host',                'default',             null                     ), \n ");
         b.append(" (6, 25,  '#port',                'default',             null                     ), \n ");
         b.append(" (6, 30,  '#platform',             'default',             null                    ), \n ");
@@ -7767,7 +7767,7 @@ public class DatabaseVersioningService implements IDatabaseVersioningService {
         b.append(" (6, 70,  '#saveExecutionParams',    'default',                null               ), \n ");
         b.append(" (6, 72,  '#RobotPanel #robot',                  'default',   null                ), \n ");
         b.append(" (6, 74,  '#saveRobotPreferences',   'default',                null               ), \n ");
-        b.append(" (6, 75,  '#addQueueAndRun',        'default',                null                ), \n ");
+        b.append(" (6, 75,  '#runTestCaseUpBlock #runTestCaseUp',        'default',                null                ), \n ");
         b.append(" (6, 80,  null,                     'general',                null                ); \n ");
         a.add(b.toString());
 

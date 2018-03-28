@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.servlet.http.HttpServletRequest;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,9 +27,13 @@ public class InteractiveTutoController {
     private InteractiveTutoService interactiveTutoService;
 
     @RequestMapping("/get")
-    public ResponseEntity<InteractiveTutoDTO> getInteractiveTuto(int id) {
+    public ResponseEntity<InteractiveTutoDTO> getInteractiveTuto(final int id, HttpServletRequest request) {
+        String lang = (String) request.getSession().getAttribute("MyLang");
 
-        InteractiveTuto it = interactiveTutoService.getInteractiveTutorial(id, true, "fr");
+        if(lang == null)
+            lang = "fr";
+
+        InteractiveTuto it = interactiveTutoService.getInteractiveTutorial(id, true, lang);
 
         if (it == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -46,9 +52,13 @@ public class InteractiveTutoController {
     }
 
     @RequestMapping("/list")
-    public ResponseEntity<List<InteractiveTutoDTO>> getListInteractiveTuto() {
+    public ResponseEntity<List<InteractiveTutoDTO>> getListInteractiveTuto(HttpServletRequest request) {
+        String lang = (String) request.getSession().getAttribute("MyLang");
 
-        List<InteractiveTuto> it = interactiveTutoService.getListInteractiveTutorial(false, "fr");
+        if(lang == null)
+            lang = "fr";
+
+        List<InteractiveTuto> it = interactiveTutoService.getListInteractiveTutorial(false, lang);
 
         if (CollectionUtils.isEmpty(it)) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);

@@ -116,7 +116,7 @@ public class InteractiveTutoControllerTest {
                 thenReturn(TYPE_INTERACTIVE_TUTO_STEP_1).
                 thenReturn(TYPE_INTERACTIVE_TUTO_STEP_2);
 
-        InteractiveTutoDTO res = interactiveTutoController.getInteractiveTuto(ID_INTERACTIVE_TUTO_1).getBody();
+        InteractiveTutoDTO res = interactiveTutoController.getInteractiveTuto(ID_INTERACTIVE_TUTO_1,null).getBody();
 
         Assert.assertNotNull(res);
         Assert.assertEquals(res.getId(), ID_INTERACTIVE_TUTO_1);
@@ -142,7 +142,7 @@ public class InteractiveTutoControllerTest {
     @Test
     public void getInteractiveTutoNoResultTest() throws Exception{
         when(resultSet.first()).thenReturn(false);
-        InteractiveTutoDTO res = interactiveTutoController.getInteractiveTuto(ID_INTERACTIVE_TUTO_1).getBody();
+        InteractiveTutoDTO res = interactiveTutoController.getInteractiveTuto(ID_INTERACTIVE_TUTO_1,null).getBody();
 
         Assert.assertNull(res);
 
